@@ -1,0 +1,1140 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Annotation Interface</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #ffffff;
+            color: #111;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 40px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 7px;
+            text-align: left;
+        }
+
+        th {
+            background: #f2f2f2;
+        }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 7px;
+        }
+
+        .status {
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+        }
+
+        .chart-section {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #252a34;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            overflow: auto;
+            background: #0f131a;
+            position: relative;
+        }
+
+        #candleChart {
+            display: block;
+            cursor: crosshair;
+        }
+
+        .chart-tooltip {
+            position: fixed;
+            display: none;
+            z-index: 1000;
+            background: rgba(20, 24, 32, 0.96);
+            color: #fff;
+            border: 1px solid #454b57;
+            border-radius: 5px;
+            padding: 8px 10px;
+            font-size: 12px;
+            line-height: 1.5;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 10px 25px;
+        }
+
+        .candle-id {
+            width: 100px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="status">
+        {% if db_status %}
+        Database data loaded successfully.
+        Current Candle ID: {{ current_id }}
+        {% else %}
+        Database data unavailable.
+        {% endif %}
+    </div>
+
+
+    <!-- CURRENT CANDLE CHART -->
+
+    <div class="chart-section">
+        <canvas id="candleChart"></canvas>
+    </div>
+
+    <div id="chartTooltip" class="chart-tooltip"></div>
+
+
+    <table>
+        <thead>
+            <tr>
+                <th></th>
+                <th>Analysis</th>
+                <th>Bias</th>
+                <th>Phase</th>
+                <th>Momentum</th>
+            </tr>
+        </thead>
+
+        <tbody>
+
+            <tr>
+                <td><strong>Original</strong></td>
+                <td>{{ current_analysis }}</td>
+                <td>{{ current_bias }}</td>
+                <td>{{ current_phase }}</td>
+                <td>{{ current_momentum }}</td>
+            </tr>
+
+            <tr>
+                <td><strong>Prediction</strong></td>
+                <td>{{ prediction_analysis }}</td>
+                <td>{{ prediction_bias }}</td>
+                <td>{{ prediction_phase }}</td>
+                <td>{{ prediction_momentum }}</td>
+            </tr>
+
+        </tbody>
+    </table>
+
+
+    {% include "annotation/components/form.html" with previous=previous current=current next=next %}
+
+
+    {{ current|json_script:"current-candles" }}
+
+
+    <script>
+
+        const candles = JSON.parse(
+            document.getElementById("current-candles").textContent
+        );
+
+
+        const canvas = document.getElementById("candleChart");
+        const ctx = canvas.getContext("2d");
+
+        const tooltip =
+            document.getElementById("chartTooltip");
+
+
+        /* =====================================================
+           SETTINGS
+        ===================================================== */
+
+        const chartHeight = 600;
+
+        const leftPadding = 15;
+        const rightPadding = 90;
+        const topPadding = 25;
+        const bottomPadding = 40;
+
+        const candleWidth = 10;
+        const candleGap = 7;
+
+        const gridCount = 8;
+
+
+        /* =====================================================
+           CANVAS SIZE
+        ===================================================== */
+
+        const requiredWidth =
+            leftPadding +
+            candles.length * (candleWidth + candleGap) +
+            rightPadding;
+
+        canvas.width =
+            Math.max(
+                requiredWidth,
+                canvas.parentElement.clientWidth
+            );
+
+        canvas.height = chartHeight;
+
+
+        /* =====================================================
+           PRICE RANGE
+        ===================================================== */
+
+        if (candles.length > 0) {
+
+            const highest = Math.max(
+                ...candles.map(c => Number(c.high))
+            );
+
+            const lowest = Math.min(
+                ...candles.map(c => Number(c.low))
+            );
+
+
+            let priceRange = highest - lowest;
+
+            if (priceRange === 0) {
+                priceRange = highest * 0.001 || 1;
+            }
+
+
+            const paddedHigh =
+                highest + priceRange * 0.05;
+
+            const paddedLow =
+                lowest - priceRange * 0.05;
+
+
+            const chartTop =
+                topPadding;
+
+            const chartBottom =
+                canvas.height - bottomPadding;
+
+
+            const usableHeight =
+                chartBottom - chartTop;
+
+
+            /* =================================================
+               PRICE → Y
+            ================================================= */
+
+            function priceToY(price) {
+
+                return chartBottom -
+                    (
+                        (price - paddedLow) /
+                        (paddedHigh - paddedLow)
+                    ) *
+                    usableHeight;
+            }
+
+
+            /* =================================================
+               Y → PRICE
+            ================================================= */
+
+            function yToPrice(y) {
+
+                return paddedLow +
+                    (
+                        (chartBottom - y) /
+                        usableHeight
+                    ) *
+                    (paddedHigh - paddedLow);
+            }
+
+
+            /* =================================================
+               GRID
+            ================================================= */
+
+            ctx.font = "11px Arial";
+
+            for (let i = 0; i <= gridCount; i++) {
+
+                const y =
+                    chartTop +
+                    (
+                        usableHeight /
+                        gridCount
+                    ) * i;
+
+
+                /* Horizontal grid */
+
+                ctx.beginPath();
+
+                ctx.moveTo(
+                    leftPadding,
+                    y
+                );
+
+                ctx.lineTo(
+                    canvas.width - rightPadding,
+                    y
+                );
+
+                ctx.strokeStyle = "#242a34";
+                ctx.lineWidth = 1;
+
+                ctx.stroke();
+
+
+                /* Price */
+
+                const price =
+                    paddedHigh -
+                    (
+                        (paddedHigh - paddedLow) /
+                        gridCount
+                    ) * i;
+
+
+                ctx.fillStyle = "#8b929e";
+                ctx.textAlign = "left";
+
+                ctx.fillText(
+                    price.toFixed(5),
+                    canvas.width - rightPadding + 10,
+                    y + 4
+                );
+            }
+
+
+            /* =================================================
+               VERTICAL GRID
+            ================================================= */
+
+            const verticalStep = 10;
+
+
+            for (
+                let i = 0;
+                i < candles.length;
+                i += verticalStep
+            ) {
+
+                const x =
+                    leftPadding +
+                    i * (candleWidth + candleGap) +
+                    candleWidth / 2;
+
+
+                ctx.beginPath();
+
+                ctx.moveTo(
+                    x,
+                    chartTop
+                );
+
+                ctx.lineTo(
+                    x,
+                    chartBottom
+                );
+
+                ctx.strokeStyle = "#1c222b";
+
+                ctx.stroke();
+            }
+
+
+            /* =================================================
+               CANDLES
+            ================================================= */
+
+            candles.forEach(
+                (candle, index) => {
+
+                    const x =
+                        leftPadding +
+                        index *
+                        (candleWidth + candleGap);
+
+
+                    const open =
+                        Number(candle.open);
+
+                    const high =
+                        Number(candle.high);
+
+                    const low =
+                        Number(candle.low);
+
+                    const close =
+                        Number(candle.close);
+
+
+                    const yOpen =
+                        priceToY(open);
+
+                    const yHigh =
+                        priceToY(high);
+
+                    const yLow =
+                        priceToY(low);
+
+                    const yClose =
+                        priceToY(close);
+
+
+                    const centerX =
+                        x + candleWidth / 2;
+
+
+                    /* ==============================
+                       WICK
+                    ============================== */
+
+                    ctx.beginPath();
+
+                    ctx.moveTo(
+                        centerX,
+                        yHigh
+                    );
+
+                    ctx.lineTo(
+                        centerX,
+                        yLow
+                    );
+
+                    ctx.strokeStyle =
+                        close >= open
+                            ? "#26a69a"
+                            : "#ef5350";
+
+                    ctx.lineWidth = 1;
+
+                    ctx.stroke();
+
+
+                    /* ==============================
+                       BODY
+                    ============================== */
+
+                    const bodyTop =
+                        Math.min(
+                            yOpen,
+                            yClose
+                        );
+
+                    const bodyHeight =
+                        Math.max(
+                            Math.abs(
+                                yOpen - yClose
+                            ),
+                            1
+                        );
+
+
+                    if (close > open) {
+
+                        ctx.fillStyle =
+                            "#26a69a";
+
+                        ctx.strokeStyle =
+                            "#26a69a";
+
+                    }
+                    else if (close < open) {
+
+                        ctx.fillStyle =
+                            "#ef5350";
+
+                        ctx.strokeStyle =
+                            "#ef5350";
+
+                    }
+                    else {
+
+                        ctx.fillStyle =
+                            "#9aa0a6";
+
+                        ctx.strokeStyle =
+                            "#9aa0a6";
+                    }
+
+
+                    ctx.fillRect(
+                        x,
+                        bodyTop,
+                        candleWidth,
+                        bodyHeight
+                    );
+
+
+                    ctx.strokeRect(
+                        x,
+                        bodyTop,
+                        candleWidth,
+                        bodyHeight
+                    );
+                }
+            );
+
+
+            /* =================================================
+               BOTTOM INDEX / TIME AREA
+            ================================================= */
+
+            ctx.fillStyle = "#8b929e";
+
+            ctx.font = "11px Arial";
+
+            ctx.textAlign = "center";
+
+
+            const labelStep =
+                Math.max(
+                    1,
+                    Math.ceil(
+                        candles.length / 12
+                    )
+                );
+
+
+            for (
+                let i = 0;
+                i < candles.length;
+                i += labelStep
+            ) {
+
+                const x =
+                    leftPadding +
+                    i *
+                    (candleWidth + candleGap) +
+                    candleWidth / 2;
+
+
+                ctx.beginPath();
+
+                ctx.moveTo(
+                    x,
+                    chartBottom
+                );
+
+                ctx.lineTo(
+                    x,
+                    chartBottom + 5
+                );
+
+                ctx.strokeStyle =
+                    "#505763";
+
+                ctx.stroke();
+
+
+                let label = i;
+
+
+                if (candles[i].time) {
+                    label = candles[i].time;
+                }
+                else if (candles[i].datetime) {
+                    label = candles[i].datetime;
+                }
+
+
+                ctx.fillText(
+                    label,
+                    x,
+                    chartBottom + 20
+                );
+            }
+
+
+            /* =================================================
+               LAST PRICE LINE
+            ================================================= */
+
+            const last =
+                candles[candles.length - 1];
+
+            const lastPrice =
+                Number(last.close);
+
+            const lastY =
+                priceToY(lastPrice);
+
+
+            ctx.beginPath();
+
+            ctx.moveTo(
+                leftPadding,
+                lastY
+            );
+
+            ctx.lineTo(
+                canvas.width - rightPadding,
+                lastY
+            );
+
+            ctx.setLineDash([5, 4]);
+
+            ctx.strokeStyle =
+                "#8b929e";
+
+            ctx.lineWidth = 1;
+
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+
+
+            /* Last price label */
+
+            ctx.fillStyle =
+                last.close >= last.open
+                    ? "#26a69a"
+                    : "#ef5350";
+
+
+            ctx.fillRect(
+                canvas.width - rightPadding,
+                lastY - 10,
+                rightPadding,
+                20
+            );
+
+
+            ctx.fillStyle = "#ffffff";
+
+            ctx.textAlign = "center";
+
+            ctx.font = "11px Arial";
+
+            ctx.fillText(
+                lastPrice.toFixed(5),
+                canvas.width -
+                rightPadding / 2,
+                lastY + 4
+            );
+
+
+            /* =================================================
+               CROSSHAIR
+            ================================================= */
+
+            let mouseX = null;
+            let mouseY = null;
+
+
+            function redrawCrosshair() {
+
+                /* redraw complete chart */
+
+                ctx.clearRect(
+                    0,
+                    0,
+                    canvas.width,
+                    canvas.height
+                );
+
+
+                /* grid */
+
+                for (let i = 0; i <= gridCount; i++) {
+
+                    const y =
+                        chartTop +
+                        (
+                            usableHeight /
+                            gridCount
+                        ) * i;
+
+
+                    ctx.beginPath();
+
+                    ctx.moveTo(
+                        leftPadding,
+                        y
+                    );
+
+                    ctx.lineTo(
+                        canvas.width - rightPadding,
+                        y
+                    );
+
+                    ctx.strokeStyle =
+                        "#242a34";
+
+                    ctx.stroke();
+
+
+                    const price =
+                        paddedHigh -
+                        (
+                            (paddedHigh - paddedLow) /
+                            gridCount
+                        ) * i;
+
+
+                    ctx.fillStyle =
+                        "#8b929e";
+
+                    ctx.textAlign = "left";
+
+                    ctx.fillText(
+                        price.toFixed(5),
+                        canvas.width -
+                        rightPadding + 10,
+                        y + 4
+                    );
+                }
+
+
+                /* vertical grid */
+
+                for (
+                    let i = 0;
+                    i < candles.length;
+                    i += verticalStep
+                ) {
+
+                    const x =
+                        leftPadding +
+                        i *
+                        (candleWidth + candleGap) +
+                        candleWidth / 2;
+
+
+                    ctx.beginPath();
+
+                    ctx.moveTo(
+                        x,
+                        chartTop
+                    );
+
+                    ctx.lineTo(
+                        x,
+                        chartBottom
+                    );
+
+                    ctx.strokeStyle =
+                        "#1c222b";
+
+                    ctx.stroke();
+                }
+
+
+                /* candles */
+
+                candles.forEach(
+                    (candle, index) => {
+
+                        const x =
+                            leftPadding +
+                            index *
+                            (candleWidth + candleGap);
+
+
+                        const open =
+                            Number(candle.open);
+
+                        const high =
+                            Number(candle.high);
+
+                        const low =
+                            Number(candle.low);
+
+                        const close =
+                            Number(candle.close);
+
+
+                        const yOpen =
+                            priceToY(open);
+
+                        const yHigh =
+                            priceToY(high);
+
+                        const yLow =
+                            priceToY(low);
+
+                        const yClose =
+                            priceToY(close);
+
+
+                        const centerX =
+                            x +
+                            candleWidth / 2;
+
+
+                        ctx.beginPath();
+
+                        ctx.moveTo(
+                            centerX,
+                            yHigh
+                        );
+
+                        ctx.lineTo(
+                            centerX,
+                            yLow
+                        );
+
+                        ctx.strokeStyle =
+                            close >= open
+                                ? "#26a69a"
+                                : "#ef5350";
+
+                        ctx.stroke();
+
+
+                        const bodyTop =
+                            Math.min(
+                                yOpen,
+                                yClose
+                            );
+
+                        const bodyHeight =
+                            Math.max(
+                                Math.abs(
+                                    yOpen -
+                                    yClose
+                                ),
+                                1
+                            );
+
+
+                        ctx.fillStyle =
+                            close >= open
+                                ? "#26a69a"
+                                : "#ef5350";
+
+
+                        ctx.fillRect(
+                            x,
+                            bodyTop,
+                            candleWidth,
+                            bodyHeight
+                        );
+                    }
+                );
+
+
+                /* last price */
+
+                ctx.beginPath();
+
+                ctx.moveTo(
+                    leftPadding,
+                    lastY
+                );
+
+                ctx.lineTo(
+                    canvas.width -
+                    rightPadding,
+                    lastY
+                );
+
+                ctx.setLineDash([5, 4]);
+
+                ctx.strokeStyle =
+                    "#8b929e";
+
+                ctx.stroke();
+
+                ctx.setLineDash([]);
+
+
+                ctx.fillStyle =
+                    last.close >= last.open
+                        ? "#26a69a"
+                        : "#ef5350";
+
+
+                ctx.fillRect(
+                    canvas.width -
+                    rightPadding,
+                    lastY - 10,
+                    rightPadding,
+                    20
+                );
+
+
+                ctx.fillStyle =
+                    "#ffffff";
+
+                ctx.textAlign =
+                    "center";
+
+                ctx.fillText(
+                    lastPrice.toFixed(5),
+                    canvas.width -
+                    rightPadding / 2,
+                    lastY + 4
+                );
+
+
+                /* bottom labels */
+
+                ctx.fillStyle =
+                    "#8b929e";
+
+                ctx.textAlign =
+                    "center";
+
+
+                for (
+                    let i = 0;
+                    i < candles.length;
+                    i += labelStep
+                ) {
+
+                    const x =
+                        leftPadding +
+                        i *
+                        (candleWidth + candleGap) +
+                        candleWidth / 2;
+
+
+                    let label = i;
+
+                    if (candles[i].time) {
+                        label = candles[i].time;
+                    }
+                    else if (candles[i].datetime) {
+                        label =
+                            candles[i].datetime;
+                    }
+
+
+                    ctx.fillText(
+                        label,
+                        x,
+                        chartBottom + 20
+                    );
+                }
+
+
+                /* crosshair */
+
+                if (
+                    mouseX !== null &&
+                    mouseY !== null
+                ) {
+
+                    ctx.beginPath();
+
+                    ctx.moveTo(
+                        leftPadding,
+                        mouseY
+                    );
+
+                    ctx.lineTo(
+                        canvas.width -
+                        rightPadding,
+                        mouseY
+                    );
+
+                    ctx.moveTo(
+                        mouseX,
+                        chartTop
+                    );
+
+                    ctx.lineTo(
+                        mouseX,
+                        chartBottom
+                    );
+
+                    ctx.setLineDash([4, 4]);
+
+                    ctx.strokeStyle =
+                        "#aeb4bf";
+
+                    ctx.lineWidth = 1;
+
+                    ctx.stroke();
+
+                    ctx.setLineDash([]);
+                }
+            }
+
+
+            /* =================================================
+               MOUSE MOVE
+            ================================================= */
+
+            canvas.addEventListener(
+                "mousemove",
+                function (event) {
+
+                    const rect =
+                        canvas.getBoundingClientRect();
+
+
+                    mouseX =
+                        event.clientX -
+                        rect.left;
+
+                    mouseY =
+                        event.clientY -
+                        rect.top;
+
+
+                    const index =
+                        Math.floor(
+                            (
+                                mouseX -
+                                leftPadding
+                            ) /
+                            (
+                                candleWidth +
+                                candleGap
+                            )
+                        );
+
+
+                    if (
+                        index >= 0 &&
+                        index < candles.length
+                    ) {
+
+                        const candle =
+                            candles[index];
+
+
+                        const open =
+                            Number(candle.open);
+
+                        const high =
+                            Number(candle.high);
+
+                        const low =
+                            Number(candle.low);
+
+                        const close =
+                            Number(candle.close);
+
+
+                        const change =
+                            close - open;
+
+
+                        const changePercent =
+                            open !== 0
+                                ? (
+                                    change /
+                                    open
+                                ) * 100
+                                : 0;
+
+
+                        let time =
+                            candle.time ||
+                            candle.datetime ||
+                            index;
+
+
+                        tooltip.innerHTML =
+
+                            "<strong>Candle " +
+                            index +
+                            "</strong><br>" +
+
+                            "Time: " +
+                            time +
+                            "<br>" +
+
+                            "Open: " +
+                            open.toFixed(5) +
+                            "<br>" +
+
+                            "High: " +
+                            high.toFixed(5) +
+                            "<br>" +
+
+                            "Low: " +
+                            low.toFixed(5) +
+                            "<br>" +
+
+                            "Close: " +
+                            close.toFixed(5) +
+                            "<br>" +
+
+                            "Change: " +
+                            change.toFixed(5) +
+                            " (" +
+                            changePercent.toFixed(2) +
+                            "%)";
+
+
+                        tooltip.style.display =
+                            "block";
+
+
+                        tooltip.style.left =
+                            (
+                                event.clientX + 15
+                            ) + "px";
+
+
+                        tooltip.style.top =
+                            (
+                                event.clientY + 15
+                            ) + "px";
+                    }
+                    else {
+
+                        tooltip.style.display =
+                            "none";
+                    }
+
+
+                    redrawCrosshair();
+                }
+            );
+
+
+            /* =================================================
+               MOUSE LEAVE
+            ================================================= */
+
+            canvas.addEventListener(
+                "mouseleave",
+                function () {
+
+                    mouseX = null;
+                    mouseY = null;
+
+                    tooltip.style.display =
+                        "none";
+
+                    redrawCrosshair();
+                }
+            );
+
+
+            /* =================================================
+               INITIAL DRAW
+            ================================================= */
+
+            redrawCrosshair();
+        }
+
+    </script>
+
+
+    <!-- RAW CANDLE DETAILS -->
+
+    {% include "annotation/components/rawtable.html" with previous=previous current=current next=next %}
+
+</body>
+
+</html>

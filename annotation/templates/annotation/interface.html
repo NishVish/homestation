@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Annotation Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #ffffff;
+            color: #111;
+        }
+
+        /* Two-div side-by-side layout */
+        .main-layout {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            align-items: flex-start;
+            box-sizing: border-box;
+        }
+
+        .left-panel {
+            flex: 1;
+            min-width: 380px;
+        }
+
+        .right-panel {
+            flex: 2;
+            min-width: 500px;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 7px;
+            text-align: left;
+            font-size: 13px;
+        }
+
+        th {
+            background: #f2f2f2;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 7px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+
+        .inputs-container {
+            background: #fdfdfd;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+
+        .level-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            align-items: end;
+            margin-top: 10px;
+        }
+
+        .input-group label {
+            font-size: 11px;
+            font-weight: bold;
+            color: #555;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .status {
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            background: #f1f5f9;
+            font-size: 13px;
+        }
+
+        .chart-section {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #252a34;
+            border-radius: 6px;
+            overflow: auto;
+            background: #0f131a;
+            position: relative;
+        }
+
+        #candleChart {
+            display: block;
+            cursor: crosshair;
+        }
+
+        .chart-tooltip {
+            position: fixed;
+            display: none;
+            z-index: 1000;
+            background: rgba(20, 24, 32, 0.96);
+            color: #fff;
+            border: 1px solid #454b57;
+            border-radius: 5px;
+            padding: 8px 10px;
+            font-size: 12px;
+            line-height: 1.5;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+
+<body>
+    <form method="POST" action="{% url 'savecandle' %}">
+
+        <div class="main-layout">
+
+
+            <!-- LEFT PANEL: Controls, Inputs, and Data Table -->
+            <div class="left-panel">
+                <div class="inputs-container">
+                    <strong>Key Zones (High / Low)</strong>
+
+
+
+                    <div class="level-row">
+                        <div class="input-group">
+                            <label>Level 1 High</label>
+                            <input type="number" step="0.01" id="key_zone_high_1" name="key_zone_high_1"
+                                class="level-ctrl" value="{{ key_zone_high_1|default:'0.00' }}">
+                        </div>
+                        <div class="input-group">
+                            <label>Level 1 Low</label>
+                            <input type="number" step="0.01" id="key_zone_low_1" name="key_zone_low_1"
+                                class="level-ctrl" value="{{ key_zone_low_1|default:'0.00' }}">
+                        </div>
+                    </div>
+
+                    <div class="level-row">
+                        <div class="input-group">
+                            <label>Level 2 High</label>
+                            <input type="number" step="0.01" id="key_zone_high_2" name="key_zone_high_2"
+                                class="level-ctrl" value="{{ key_zone_high_2|default:'0.00' }}">
+                        </div>
+                        <div class="input-group">
+                            <label>Level 2 Low</label>
+                            <input type="number" step="0.01" id="key_zone_low_2" name="key_zone_low_2"
+                                class="level-ctrl" value="{{ key_zone_low_2|default:'0.00' }}">
+                        </div>
+                    </div>
+
+                    <div class="level-row">
+                        <div class="input-group">
+                            <label>Level 3 High</label>
+                            <input type="number" step="0.01" id="key_zone_high_3" name="key_zone_high_3"
+                                class="level-ctrl" value="{{ key_zone_high_3|default:'0.00' }}">
+                        </div>
+                        <div class="input-group">
+                            <label>Level 3 Low</label>
+                            <input type="number" step="0.01" id="key_zone_low_3" name="key_zone_low_3"
+                                class="level-ctrl" value="{{ key_zone_low_3|default:'0.00' }}">
+                        </div>
+                    </div>
+
+                    <div class="level-row">
+                        <div class="input-group">
+                            <label>Level 4 High</label>
+                            <input type="number" step="0.01" id="key_zone_high_4" name="key_zone_high_4"
+                                class="level-ctrl" value="{{ key_zone_high_4|default:'0.00' }}">
+                        </div>
+                        <div class="input-group">
+                            <label>Level 4 Low</label>
+                            <input type="number" step="0.01" id="key_zone_low_4" name="key_zone_low_4"
+                                class="level-ctrl" value="{{ key_zone_low_4|default:'0.00' }}">
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <div class="status">
+                    {% if db_status %}
+                    Database data loaded successfully.<br>
+                    Current Candle ID: {{ current_id }}
+                    {% else %}
+                    Database data unavailable (using fallback/demo data).
+                    {% endif %}
+                </div>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th></th>
+                            <th>Analysis</th>
+                            <th>Bias</th>
+                            <th>Phase</th>
+                            <th>Momentum</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Original</strong></td>
+                            <td>{{ current_analysis }}</td>
+                            <td>{{ current_bias }}</td>
+                            <td>{{ current_phase }}</td>
+                            <td>{{ current_momentum }}</td>
+                        </tr>
+                        <tr>
+                            <td><strong>Prediction</strong></td>
+                            <td>{{ prediction_analysis }}</td>
+                            <td>{{ prediction_bias }}</td>
+                            <td>{{ prediction_phase }}</td>
+                            <td>{{ prediction_momentum }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- RIGHT PANEL: Chart Section -->
+            <div class="right-panel">
+                <div class="chart-section">
+                    <canvas id="candleChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="chartTooltip" class="chart-tooltip"></div>
+
+        {% include "annotation/components/form.html" with previous=previous current=current next=next %}
+
+        {{ current|json_script:"current-candles" }}
+
+        <script>
+            // Fallback demo candles if none passed from backend
+            const rawCandles = JSON.parse(document.getElementById("current-candles").textContent || "[]");
+            const candles = rawCandles.length > 0 ? rawCandles : [
+                { open: 100, high: 110, low: 95, close: 105, time: "2026-01-01" },
+                { open: 105, high: 115, low: 102, close: 112, time: "2026-01-02" },
+                { open: 112, high: 120, low: 108, close: 118, time: "2026-01-03" },
+                { open: 118, high: 125, low: 115, close: 122, time: "2026-01-04" }
+            ];
+            const renderCandles = [...candles].reverse();
+            const canvas = document.getElementById("candleChart");
+            const ctx = canvas.getContext("2d");
+            const tooltip = document.getElementById("chartTooltip");
+
+            /* =====================================================
+                CHART SETTINGS & SCALING
+            ===================================================== */
+            const chartHeight = 600;
+            const leftPadding = 15;
+            const rightPadding = 90;
+            const topPadding = 25;
+            const bottomPadding = 40;
+            const candleWidth = 10;
+            const candleGap = 7;
+            const gridCount = 8;
+
+            const candlesEndX = leftPadding + (renderCandles.length * (candleWidth + candleGap));
+            const columnWidth = 65;
+            const columnGap = 15;
+            const columnsTotalWidth = 4 * (columnWidth + columnGap) + 20;
+            const requiredWidth = candlesEndX + columnsTotalWidth + rightPadding;
+
+            canvas.width = Math.max(requiredWidth, canvas.parentElement.clientWidth);
+            canvas.height = chartHeight;
+
+            let highest = 200;
+            let lowest = 100;
+            if (renderCandles.length > 0) {
+                highest = Math.max(...renderCandles.map(c => Number(c.high)));
+                lowest = Math.min(...renderCandles.map(c => Number(c.low)));
+            }
+
+            let priceRange = highest - lowest;
+            if (priceRange === 0) priceRange = highest * 0.001 || 1;
+
+            const paddedHigh = highest + priceRange * 0.05;
+            const paddedLow = lowest - priceRange * 0.05;
+            const chartTop = topPadding;
+            const usableHeight = chartHeight - topPadding - bottomPadding;
+
+            function priceToY(price) {
+                return chartTop + ((paddedHigh - price) / (paddedHigh - paddedLow)) * usableHeight;
+            }
+
+            let mouseX = null;
+            let mouseY = null;
+
+            function redrawAll() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                // GRID
+                for (let i = 0; i <= gridCount; i++) {
+                    const y = chartTop + (usableHeight / gridCount) * i;
+                    ctx.beginPath();
+                    ctx.moveTo(leftPadding, y);
+                    ctx.lineTo(canvas.width - rightPadding, y);
+                    ctx.strokeStyle = "#242a34";
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+
+                    const price = paddedHigh - ((paddedHigh - paddedLow) / gridCount) * i;
+                    ctx.fillStyle = "#8b929e";
+                    ctx.textAlign = "left";
+                    ctx.font = "11px Arial";
+                    ctx.fillText(price.toFixed(2), canvas.width - rightPadding + 10, y + 4);
+                }
+
+                // CANDLES
+                renderCandles.forEach((candle, index) => {
+                    const x = leftPadding + index * (candleWidth + candleGap);
+                    const open = Number(candle.open);
+                    const high = Number(candle.high);
+                    const low = Number(candle.low);
+                    const close = Number(candle.close);
+                    const yOpen = priceToY(open);
+                    const yHigh = priceToY(high);
+                    const yLow = priceToY(low);
+                    const yClose = priceToY(close);
+                    const centerX = x + candleWidth / 2;
+
+                    // Wick
+                    ctx.beginPath();
+                    ctx.moveTo(centerX, yHigh);
+                    ctx.lineTo(centerX, yLow);
+                    ctx.strokeStyle = close >= open ? "#26a69a" : "#ef5350";
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+
+                    // Body
+                    const bodyTop = Math.min(yOpen, yClose);
+                    const bodyHeight = Math.max(Math.abs(yOpen - yClose), 1);
+                    ctx.fillStyle = close >= open ? "#26a69a" : "#ef5350";
+                    ctx.fillRect(x, bodyTop, candleWidth, bodyHeight);
+                });
+
+                // =====================================================
+                // 4 COLUMNS & LEVEL LINES (Independent Y values)
+                // =====================================================
+                const levelColors = ["#3b82f6", "#10b981", "#f59e0b", "#ec4899"];
+                const startColX = candlesEndX + 15;
+
+                for (let n = 1; n <= 4; n++) {
+                    const startInput = document.getElementById(`key_zone_high_${n}`);
+                    const endInput = document.getElementById(`key_zone_low_${n}`);
+
+                    const valStart = parseFloat(startInput ? startInput.value : 0);
+                    const valEnd = parseFloat(endInput ? endInput.value : 0);
+
+                    const y1 = priceToY(valStart);
+                    const y2 = priceToY(valEnd);
+
+                    const colXStart = startColX + (n - 1) * (columnWidth + columnGap);
+                    const colXEnd = colXStart + columnWidth;
+                    const color = levelColors[n - 1];
+
+                    // Semi-transparent zone fill spanning from column to left end
+                    ctx.fillStyle = color + "12";
+                    ctx.fillRect(leftPadding, Math.min(y1, y2), colXEnd - leftPadding, Math.abs(y2 - y1));
+
+                    // First line from column right edge to left end of chart
+                    ctx.beginPath();
+                    ctx.moveTo(colXEnd, y1);
+                    ctx.lineTo(leftPadding, y1);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    // Second line from column right edge to left end of chart
+                    ctx.beginPath();
+                    ctx.moveTo(colXEnd, y2);
+                    ctx.lineTo(leftPadding, y2);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    // Column Label in between lines
+                    ctx.fillStyle = color;
+                    ctx.font = "bold 13px Arial";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    const midX = colXStart + columnWidth / 2;
+                    const midY = (y1 + y2) / 2;
+                    ctx.fillText(n, midX, midY);
+                    ctx.textBaseline = "alphabetic";
+                }
+
+                // LAST PRICE LINE
+                if (renderCandles.length > 0) {
+                    const last = renderCandles[renderCandles.length - 1];
+                    const lastPrice = Number(last.close);
+                    const lastY = priceToY(lastPrice);
+                    ctx.beginPath();
+                    ctx.moveTo(leftPadding, lastY);
+                    ctx.lineTo(canvas.width - rightPadding, lastY);
+                    ctx.setLineDash([5, 4]);
+                    ctx.strokeStyle = "#8b929e";
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                    ctx.fillStyle = last.close >= last.open ? "#26a69a" : "#ef5350";
+                    ctx.fillRect(canvas.width - rightPadding, lastY - 10, rightPadding, 20);
+                    ctx.fillStyle = "#ffffff";
+                    ctx.textAlign = "center";
+                    ctx.font = "11px Arial";
+                    ctx.fillText(lastPrice.toFixed(2), canvas.width - rightPadding / 2, lastY + 4);
+                }
+
+                // CROSSHAIR
+                if (mouseX !== null && mouseY !== null) {
+                    ctx.beginPath();
+                    ctx.moveTo(leftPadding, mouseY);
+                    ctx.lineTo(canvas.width - rightPadding, mouseY);
+                    ctx.moveTo(mouseX, chartTop);
+                    ctx.lineTo(mouseX, chartHeight - bottomPadding);
+                    ctx.setLineDash([4, 4]);
+                    ctx.strokeStyle = "#aeb4bf";
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+                    ctx.setLineDash([]);
+                }
+            }
+
+            /* =================================================
+                EVENT LISTENERS
+            ================================================= */
+            document.querySelectorAll(".level-ctrl").forEach(el => {
+                el.addEventListener("input", redrawAll);
+                el.addEventListener("change", redrawAll);
+            });
+
+            canvas.addEventListener("mousemove", function (event) {
+                const rect = canvas.getBoundingClientRect();
+                mouseX = event.clientX - rect.left;
+                mouseY = event.clientY - rect.top;
+                const index = Math.floor((mouseX - leftPadding) / (candleWidth + candleGap));
+
+                if (index >= 0 && index < renderCandles.length) {
+                    const candle = renderCandles[index];
+                    const open = Number(candle.open);
+                    const high = Number(candle.high);
+                    const low = Number(candle.low);
+                    const close = Number(candle.close);
+                    const change = close - open;
+                    const changePercent = open !== 0 ? (change / open) * 100 : 0;
+                    let time = candle.time || candle.datetime || index;
+
+                    tooltip.innerHTML =
+                        "<strong>Candle " + index + "</strong><br>" +
+                        "Time: " + time + "<br>" +
+                        "Open: " + open.toFixed(2) + "<br>" +
+                        "High: " + high.toFixed(2) + "<br>" +
+                        "Low: " + low.toFixed(2) + "<br>" +
+                        "Close: " + close.toFixed(2) + "<br>" +
+                        "Change: " + change.toFixed(2) + " (" + changePercent.toFixed(2) + "%)";
+                    tooltip.style.display = "block";
+                    tooltip.style.left = (event.clientX + 15) + "px";
+                    tooltip.style.top = (event.clientY + 15) + "px";
+                } else {
+                    tooltip.style.display = "none";
+                }
+                redrawAll();
+            });
+
+            canvas.addEventListener("mouseleave", function () {
+                mouseX = null;
+                mouseY = null;
+                tooltip.style.display = "none";
+                redrawAll();
+            });
+
+            redrawAll();
+        </script>
+    </form>
+</body>
+
+</html>

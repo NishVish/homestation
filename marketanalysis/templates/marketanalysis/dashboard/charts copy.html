@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Advanced Candle Charts</title>
+
+    <script src="https://unpkg.com/lightweight-charts/dist/lightweight-charts.standalone.production.js"></script>
+
+    <style>
+        .chart {
+            height: 300px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="chart4h" class="chart"></div>
+    <div id="chart1h" class="chart"></div>
+    <div id="chart15m" class="chart"></div>
+
+    <script>
+        fetch("../candledata/{{current.id}}/")
+            .then(res => res.json())
+            .then(data => {
+
+                function format(candles) {
+                    return candles.map(c => ({
+                        time: Number(c[0]),
+                        open: Number(c[1]),
+                        high: Number(c[2]),
+                        low: Number(c[3]),
+                        close: Number(c[4])
+                    }));
+                }
+
+                function createChart(container, candles, title) {
+                    const chart = LightweightCharts.createChart(document.getElementById(container), {
+                        layout: {
+                            background: { color: "#ffffff" },
+                            textColor: "#000"
+                        },
+                        grid: {
+                            vertLines: { color: "#eee" },
+                            horzLines: { color: "#eee" }
+                        },
+                        crosshair: {
+                            mode: LightweightCharts.CrosshairMode.Normal
+                        },
+                        rightPriceScale: {
+                            borderColor: "#ccc"
+                        },
+                        timeScale: {
+                            timeVisible: true,
+                            secondsVisible: false
+                        }
+                    });
+
+                    const series = chart.addCandlestickSeries();
+
+                    series.setData(format(candles));
+                }
+
+                createChart("chart4h", data.fourhour, "4H");
+                createChart("chart1h", data.onehour, "1H");
+                createChart("chart15m", data.fifteen, "15M");
+
+            });
+    </script>
+
+</body>
+
+</html>

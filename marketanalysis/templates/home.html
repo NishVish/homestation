@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML Dataset Control Panel</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f7f6;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: auto;
+            background: #ffffff;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333333;
+            margin-top: 0;
+        }
+
+        p {
+            color: #666666;
+        }
+
+        .btn-group {
+            margin: 20px 0;
+        }
+
+        .btn {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            font-size: 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+            transition: background 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #0056b3;
+        }
+
+        .btn-success {
+            background-color: #28a745;
+        }
+
+        .btn-success:hover {
+            background-color: #218838;
+        }
+
+        .output-box {
+            background-color: #f8f9fa;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            padding: 15px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: Consolas, Monaco, monospace;
+            font-size: 13px;
+            color: #333;
+        }
+
+        .loading {
+            font-style: italic;
+            color: #888;
+            margin-bottom: 10px;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h1>ML Dataset Dashboard</h1>
+        <p>Interact with your MT5 exported CSV file and execute database migrations.</p>
+
+        <div class="btn-group">
+            <button class="btn" onclick="triggerAction('load-csv-df/')">Load CSV & View Head</button>
+            <button class="btn btn-success" onclick="triggerAction('migrate-db/')">Migrate 1min Data to DB</button>
+        </div>
+
+        <h3>Response Output:</h3>
+        <div id="loading" class="loading">Processing request, please wait...</div>
+        <div class="output-box">
+            <pre id="output">Click one of the buttons above to see results here...</pre>
+        </div>
+    </div>
+
+    <script>
+        function triggerAction(url) {
+            const loadingIndicator = document.getElementById('loading');
+            const outputElement = document.getElementById('output');
+
+            loadingIndicator.style.display = 'block';
+            outputElement.textContent = 'Loading...';
+
+            // Removed the leading slash so it appends correctly to /marketanalysis/
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    loadingIndicator.style.display = 'none';
+                    outputElement.textContent = JSON.stringify(data, null, 4);
+                })
+                .catch(error => {
+                    loadingIndicator.style.display = 'none';
+                    outputElement.textContent = 'Error: ' + error.message;
+                });
+        }
+    </script>
+
+</body>
+
+</html>

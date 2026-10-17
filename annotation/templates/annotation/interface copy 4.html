@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Annotation Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background: #ffffff;
+            color: #111;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-bottom: 40px;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 7px;
+            text-align: left;
+        }
+
+        th {
+            background: #f2f2f2;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 7px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            background: #f9f9f9;
+        }
+
+        .inputs-container {
+            background: #fdfdfd;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 25px;
+        }
+
+        /* One row per level: point A | point B | type */
+        .level-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            align-items: end;
+            margin-top: 10px;
+        }
+
+        .input-group label {
+            font-size: 11px;
+            font-weight: bold;
+            color: #555;
+            display: block;
+            margin-bottom: 3px;
+        }
+
+        .status {
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+            background: #f1f5f9;
+        }
+
+        .chart-section {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #252a34;
+            border-radius: 6px;
+            margin-bottom: 30px;
+            overflow: auto;
+            background: #0f131a;
+            position: relative;
+        }
+
+        #candleChart {
+            display: block;
+            cursor: crosshair;
+        }
+
+        .chart-tooltip {
+            position: fixed;
+            display: none;
+            z-index: 1000;
+            background: rgba(20, 24, 32, 0.96);
+            color: #fff;
+            border: 1px solid #454b57;
+            border-radius: 5px;
+            padding: 8px 10px;
+            font-size: 12px;
+            line-height: 1.5;
+            pointer-events: none;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- LEVEL CONTROLS: candle index point A / point B -->
+    <div class="inputs-container">
+        <strong>Key Levels (candle index: 0 = latest candle)</strong>
+
+        <div class="level-row">
+            <div class="input-group">
+                <label>Keylevel 1 Start (point A)</label>
+                <input type="number" min="0" step="1" id="keylevel_1_start" name="keylevel_1_start" class="level-ctrl"
+                    value="{{ keylevel_1_start }}">
+            </div>
+            <div class="input-group">
+                <label>Keylevel 1 End (point B)</label>
+                <input type="number" min="0" step="1" id="keylevel_1_end" name="keylevel_1_end" class="level-ctrl"
+                    value="{{ keylevel_1_end }}">
+            </div>
+            <div class="input-group">
+                <label>Keylevel 1 Type</label>
+                <input type="text" id="keylevel_1_type" name="keylevel_1_type" value="{{ keylevel_1_type }}">
+            </div>
+        </div>
+
+        <div class="level-row">
+            <div class="input-group">
+                <label>Keylevel 2 Start (point A)</label>
+                <input type="number" min="0" step="1" id="keylevel_2_start" name="keylevel_2_start" class="level-ctrl"
+                    value="{{ keylevel_2_start }}">
+            </div>
+            <div class="input-group">
+                <label>Keylevel 2 End (point B)</label>
+                <input type="number" min="0" step="1" id="keylevel_2_end" name="keylevel_2_end" class="level-ctrl"
+                    value="{{ keylevel_2_end }}">
+            </div>
+            <div class="input-group">
+                <label>Keylevel 2 Type</label>
+                <input type="text" id="keylevel_2_type" name="keylevel_2_type" value="{{ keylevel_2_type }}">
+            </div>
+        </div>
+
+        <div class="level-row">
+            <div class="input-group">
+                <label>Keylevel 3 Start (point A)</label>
+                <input type="number" min="0" step="1" id="keylevel_3_start" name="keylevel_3_start" class="level-ctrl"
+                    value="{{ keylevel_3_start }}">
+            </div>
+            <div class="input-group">
+                <label>Keylevel 3 End (point B)</label>
+                <input type="number" min="0" step="1" id="keylevel_3_end" name="keylevel_3_end" class="level-ctrl"
+                    value="{{ keylevel_3_end }}">
+            </div>
+            <div class="input-group">
+                <label>Keylevel 3 Type</label>
+                <input type="text" id="keylevel_3_type" name="keylevel_3_type" value="{{ keylevel_3_type }}">
+            </div>
+        </div>
+
+        <div class="level-row">
+            <div class="input-group">
+                <label>Keylevel 4 Start (point A)</label>
+                <input type="number" min="0" step="1" id="keylevel_4_start" name="keylevel_4_start" class="level-ctrl"
+                    value="{{ keylevel_4_start }}">
+            </div>
+            <div class="input-group">
+                <label>Keylevel 4 End (point B)</label>
+                <input type="number" min="0" step="1" id="keylevel_4_end" name="keylevel_4_end" class="level-ctrl"
+                    value="{{ keylevel_4_end }}">
+            </div>
+            <div class="input-group">
+                <label>Keylevel 4 Type</label>
+                <input type="text" id="keylevel_4_type" name="keylevel_4_type" value="{{ keylevel_4_type }}">
+            </div>
+        </div>
+    </div>
+
+    <div class="status">
+        {% if db_status %}
+        Database data loaded successfully.<br>
+        Current Candle ID: {{ current_id }}
+        {% else %}
+        Database data unavailable.
+        {% endif %}
+    </div>
+
+    <div class="chart-section">
+        <canvas id="candleChart"></canvas>
+    </div>
+    <div id="chartTooltip" class="chart-tooltip"></div>
+
+    <table>
+        <thead>
+            <tr>
+                <th></th>
+                <th>Analysis</th>
+                <th>Bias</th>
+                <th>Phase</th>
+                <th>Momentum</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Original</strong></td>
+                <td>{{ current_analysis }}</td>
+                <td>{{ current_bias }}</td>
+                <td>{{ current_phase }}</td>
+                <td>{{ current_momentum }}</td>
+            </tr>
+            <tr>
+                <td><strong>Prediction</strong></td>
+                <td>{{ prediction_analysis }}</td>
+                <td>{{ prediction_bias }}</td>
+                <td>{{ prediction_phase }}</td>
+                <td>{{ prediction_momentum }}</td>
+            </tr>
+        </tbody>
+    </table>
+
+    {% include "annotation/components/form.html" with previous=previous current=current next=next %}
+
+    {{ current|json_script:"current-candles" }}
+
+    <script>
+        const candles = JSON.parse(document.getElementById("current-candles").textContent || "[]");
+        const renderCandles = [...candles].reverse();
+        const canvas = document.getElementById("candleChart");
+        const ctx = canvas.getContext("2d");
+        const tooltip = document.getElementById("chartTooltip");
+
+        /* =====================================================
+            CHART SETTINGS & SCALING
+        ===================================================== */
+        const chartHeight = 600;
+        const leftPadding = 15;
+        const rightPadding = 90;
+        const topPadding = 25;
+        const bottomPadding = 40;
+        const candleWidth = 10;
+        const candleGap = 7;
+        const gridCount = 8;
+
+        const requiredWidth = leftPadding + (renderCandles.length * (candleWidth + candleGap)) + rightPadding;
+        canvas.width = Math.max(requiredWidth, canvas.parentElement.clientWidth);
+        canvas.height = chartHeight;
+
+        let highest = 200;
+        let lowest = 100;
+        if (renderCandles.length > 0) {
+            highest = Math.max(...renderCandles.map(c => Number(c.high)));
+            lowest = Math.min(...renderCandles.map(c => Number(c.low)));
+        }
+
+        let priceRange = highest - lowest;
+        if (priceRange === 0) {
+            priceRange = highest * 0.001 || 1;
+        }
+
+        const paddedHigh = highest + priceRange * 0.05;
+        const paddedLow = lowest - priceRange * 0.05;
+        const chartTop = topPadding;
+        const chartBottom = canvas.height - bottomPadding; // Note: canvas.height is chartHeight (600)
+        // Fix standard chart bottom calculation relative to height:
+        const usableHeight = chartHeight - topPadding - bottomPadding;
+
+        function priceToY(price) {
+            return chartTop + ((paddedHigh - price) / (paddedHigh - paddedLow)) * usableHeight;
+        }
+
+        let mouseX = null;
+        let mouseY = null;
+
+        // candle index (0 = latest) -> x pixel (center of candle)
+        function candleIndexToX(candleIdx) {
+            const renderIdx = renderCandles.length - 1 - candleIdx;
+            return leftPadding + renderIdx * (candleWidth + candleGap) + candleWidth / 2;
+        }
+
+        // read an input as a valid candle index (defaults to 0)
+        function readCandleIndex(id) {
+            const el = document.getElementById(id);
+            let v = parseInt(el.value, 10);
+            if (isNaN(v)) v = 0;
+            const maxIdx = Math.max(renderCandles.length - 1, 0);
+            return Math.min(Math.max(v, 0), maxIdx);
+        }
+
+        function redrawAll() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // GRID
+            for (let i = 0; i <= gridCount; i++) {
+                const y = chartTop + (usableHeight / gridCount) * i;
+                ctx.beginPath();
+                ctx.moveTo(leftPadding, y);
+                ctx.lineTo(canvas.width - rightPadding, y);
+                ctx.strokeStyle = "#242a34";
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                const price = paddedHigh - ((paddedHigh - paddedLow) / gridCount) * i;
+                ctx.fillStyle = "#8b929e";
+                ctx.textAlign = "left";
+                ctx.font = "11px Arial";
+                ctx.fillText(price.toFixed(5), canvas.width - rightPadding + 10, y + 4);
+            }
+
+            // CANDLES
+            renderCandles.forEach((candle, index) => {
+                const x = leftPadding + index * (candleWidth + candleGap);
+                const open = Number(candle.open);
+                const high = Number(candle.high);
+                const low = Number(candle.low);
+                const close = Number(candle.close);
+                const yOpen = priceToY(open);
+                const yHigh = priceToY(high);
+                const yLow = priceToY(low);
+                const yClose = priceToY(close);
+                const centerX = x + candleWidth / 2;
+
+                // Wick
+                ctx.beginPath();
+                ctx.moveTo(centerX, yHigh);
+                ctx.lineTo(centerX, yLow);
+                ctx.strokeStyle = close >= open ? "#26a69a" : "#ef5350";
+                ctx.lineWidth = 1;
+                ctx.stroke();
+
+                // Body
+                const bodyTop = Math.min(yOpen, yClose);
+                const bodyHeight = Math.max(Math.abs(yOpen - yClose), 1);
+                ctx.fillStyle = close >= open ? "#26a69a" : "#ef5350";
+                ctx.fillRect(x, bodyTop, candleWidth, bodyHeight);
+            });
+
+            // =====================================================
+            // KEYLEVELS (4 COLUMNS / LEVELS)
+            // =====================================================
+            const levelColors = ["#3b82f6", "#10b981", "#f59e0b", "#ec4899"]; // Distinct colors for levels 1 to 4
+
+            for (let n = 1; n <= 4; n++) {
+                const startIdx = readCandleIndex(`keylevel_${n}_start`);
+                const endIdx = readCandleIndex(`keylevel_${n}_end`);
+
+                const startCandle = renderCandles[renderCandles.length - 1 - startIdx];
+                const endCandle = renderCandles[renderCandles.length - 1 - endIdx];
+
+                if (startCandle && endCandle) {
+                    const y1 = priceToY(Number(startCandle.close));
+                    const y2 = priceToY(Number(endCandle.close));
+                    const xCol = candleIndexToX(startIdx);
+                    const color = levelColors[n - 1];
+
+                    // Semi-transparent zone fill between the two lines
+                    ctx.fillStyle = color + "15"; // 15 hex = ~8% opacity
+                    ctx.fillRect(leftPadding, Math.min(y1, y2), xCol - leftPadding, Math.abs(y2 - y1));
+
+                    // First line (from column X to left end)
+                    ctx.beginPath();
+                    ctx.moveTo(xCol, y1);
+                    ctx.lineTo(leftPadding, y1);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    // Second line (from column X to left end)
+                    ctx.beginPath();
+                    ctx.moveTo(xCol, y2);
+                    ctx.lineTo(leftPadding, y2);
+                    ctx.strokeStyle = color;
+                    ctx.lineWidth = 1.5;
+                    ctx.stroke();
+
+                    // Label the column number in between the two lines
+                    ctx.fillStyle = color;
+                    ctx.font = "bold 12px Arial";
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    const midX = leftPadding + (xCol - leftPadding) / 2;
+                    const midY = (y1 + y2) / 2;
+                    ctx.fillText(n, midX, midY);
+                    ctx.textBaseline = "alphabetic"; // reset baseline
+                }
+            }
+
+            // LAST PRICE LINE
+            if (renderCandles.length > 0) {
+                const last = renderCandles[renderCandles.length - 1];
+                const lastPrice = Number(last.close);
+                const lastY = priceToY(lastPrice);
+                ctx.beginPath();
+                ctx.moveTo(leftPadding, lastY);
+                ctx.lineTo(canvas.width - rightPadding, lastY);
+                ctx.setLineDash([5, 4]);
+                ctx.strokeStyle = "#8b929e";
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.setLineDash([]);
+                ctx.fillStyle = last.close >= last.open ? "#26a69a" : "#ef5350";
+                ctx.fillRect(canvas.width - rightPadding, lastY - 10, rightPadding, 20);
+                ctx.fillStyle = "#ffffff";
+                ctx.textAlign = "center";
+                ctx.font = "11px Arial";
+                ctx.fillText(lastPrice.toFixed(5), canvas.width - rightPadding / 2, lastY + 4);
+            }
+
+            // CROSSHAIR
+            if (mouseX !== null && mouseY !== null) {
+                ctx.beginPath();
+                ctx.moveTo(leftPadding, mouseY);
+                ctx.lineTo(canvas.width - rightPadding, mouseY);
+                ctx.moveTo(mouseX, chartTop);
+                ctx.lineTo(mouseX, chartBottom);
+                ctx.setLineDash([4, 4]);
+                ctx.strokeStyle = "#aeb4bf";
+                ctx.lineWidth = 1;
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+        }
+
+        /* =================================================
+            EVENT LISTENERS
+        ================================================= */
+
+        // Any candle-index input change redraws the chart immediately
+        document.querySelectorAll(".level-ctrl").forEach(el => {
+            el.addEventListener("input", redrawAll);
+            el.addEventListener("change", redrawAll);
+        });
+
+        // Normalise empty / invalid start & end inputs to a valid candle index (default 0)
+        for (let n = 1; n <= 4; n++) {
+            ["start", "end"].forEach(p => {
+                const el = document.getElementById(`keylevel_${n}_${p}`);
+                el.value = readCandleIndex(`keylevel_${n}_${p}`);
+            });
+        }
+
+        canvas.addEventListener("mousemove", function (event) {
+            const rect = canvas.getBoundingClientRect();
+            mouseX = event.clientX - rect.left;
+            mouseY = event.clientY - rect.top;
+            const index = Math.floor((mouseX - leftPadding) / (candleWidth + candleGap));
+
+            if (index >= 0 && index < renderCandles.length) {
+                const candle = renderCandles[index];
+                const open = Number(candle.open);
+                const high = Number(candle.high);
+                const low = Number(candle.low);
+                const close = Number(candle.close);
+                const change = close - open;
+                const changePercent = open !== 0 ? (change / open) * 100 : 0;
+                let time = candle.time || candle.datetime || index;
+
+                tooltip.innerHTML =
+                    "<strong>Candle " + (renderCandles.length - index - 1) + "</strong><br>" +
+                    "Time: " + time + "<br>" +
+                    "Open: " + open.toFixed(5) + "<br>" +
+                    "High: " + high.toFixed(5) + "<br>" +
+                    "Low: " + low.toFixed(5) + "<br>" +
+                    "Close: " + close.toFixed(5) + "<br>" +
+                    "Change: " + change.toFixed(5) + " (" + changePercent.toFixed(2) + "%)";
+                tooltip.style.display = "block";
+                tooltip.style.left = (event.clientX + 15) + "px";
+                tooltip.style.top = (event.clientY + 15) + "px";
+            } else {
+                tooltip.style.display = "none";
+            }
+            redrawAll();
+        });
+
+        canvas.addEventListener("mouseleave", function () {
+            mouseX = null;
+            mouseY = null;
+            tooltip.style.display = "none";
+            redrawAll();
+        });
+
+        redrawAll();
+    </script>
+
+    {% include "annotation/components/rawtable.html" with previous=previous current=current next=next %}
+</body>
+
+</html>

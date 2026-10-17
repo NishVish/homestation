@@ -1,0 +1,35 @@
+<input type="text" id="cmdInput" placeholder="Search or lara/..." />
+
+<script>
+    const input = document.getElementById("cmdInput");
+
+    function focusInput() {
+        input.focus();
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+        setTimeout(focusInput, 50);
+    });
+
+    window.addEventListener("load", () => {
+        setTimeout(focusInput, 100);
+    });
+
+    input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+            const val = input.value.trim();
+            if (!val) return;
+
+            if (val.startsWith("lara/")) {
+                const path = val.slice(5);
+                window.location.href =
+                    "http://localhost/iitm/lara/" + encodeURIComponent(path);
+            } else {
+                window.open(
+                    "https://www.google.com/search?q=" + encodeURIComponent(val),
+                    "_blank"
+                );
+            }
+        }
+    });
+</script>

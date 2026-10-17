@@ -1,0 +1,58 @@
+title,group,link
+ChatGPT,General,https://chat.openai.com
+Gemini,General,https://gemini.google.com
+Google,General,https://www.google.com
+YouTube,General,https://www.youtube.com
+Gmail,General,https://mail.google.com
+Google Sheets,General,https://docs.google.com/spreadsheets
+Sheet2026,General,https://docs.google.com/spreadsheets/d/1obhQyD9GKj3uiCRd9ePVpgjpGmbruRWRt74Y5Oa3hgQ/edit?gid=593067018#gid=593067018
+Print,General,https://docs.google.com/spreadsheets/d/1caT5828yclFyGhWQcj8p-wUUAZwRS_OlqN6roJirF4g/edit?gid=0#gid=0
+
+
+Exness,Trading,https://my.exness.com/pa/trading/accounts
+Exness Chart, Trading, https://my.exness.com/webtrading/
+Charts,General,https://in.tradingview.com/chart/283gzLF7/
+
+Octafx,Trading,https://my.octabroker.com/
+
+Indeed,Jobs,https://www.indeed.com
+Naukri,Jobs,https://www.naukri.com
+LinkedIn,Jobs,https://www.linkedin.com
+CV Maker,Jobs,https://app.flowcv.com/resume/content
+
+GitHub,Project,https://github.com
+Colab,Project,https://colab.research.google.com
+Market Dashboard,Project,http://127.0.0.1:8000/marketanalysis/
+Laravel App,Local Projects,http://localhost/iitm/lara
+Laravel Assets,Local Projects,http://localhost/iitm/lara/assets
+Central App,Local Projects,http://localhost/iitm/central
+Php My Admin,Local Projects,http://localhost/phpmyadmin
+Exhibiting,Laravel App,http://localhost/iitm/lara/exhibiting
+Attending,Laravel App,http://localhost/iitm/lara/attending
+Enquiry,Laravel App,http://localhost/iitm/lara/enquiry
+Visitor Form (POST Handler),Laravel App,http://localhost/iitm/lara/visitor-form
+Booking,Laravel App,http://localhost/iitm/lara/booking
+Backend,Laravel App,http://localhost/iitm/lara/backend
+Temp Table,Laravel App,http://localhost/iitm/lara/temptable
+
+Central Live,Production,http://iitmindia.com/ci/central
+Lara Live,Production,http://iitmindia.com/ci/lara
+IITM Live,Production,http://iitmindia.com
+IITM Links,Production,http://iitmindia.com/notes.php
+
+
+Booking API,Laravel API,http://localhost/iitm/lara/details/7909075195
+
+SSH,Local Access,http://localhost:8888
+Utorrent,Local Access,https://utweb.rainberrytv.com/gui/index.html?v=1.6.0.6414&localauth=localapi3dd0c381fdc25e22:#/library
+Duck DB,Local Access,http://localhost/iitm/excel/
+
+Excel,Local Access,http://localhost:4213/
+
+
+IGN LOTR Watch Order,Media,https://www.ign.com/articles/lord-of-the-rings-movies-in-order
+Torrent Search,Media,https://tpbay.win/search.html?q=twilight&cat=0
+PirateBay Proxy,Media,https://piratebayproxy.net/
+
+GoDaddy,Hosting,https://www.godaddy.com
+GoDaddy VPS,Hosting,https://host.godaddy.com/vps/servers

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+
+<body>
+
+    <h2>Upload Image (Camera or Gallery)</h2>
+
+    <form id="form">
+        <input type="file" name="image" accept="image/*" capture>
+        <br><br>
+        <button type="submit">Upload</button>
+    </form>
+
+    <script>
+        document.getElementById("form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData(e.target);
+
+            await fetch("/workstation/upload/", {
+                method: "POST",
+                body: formData
+            });
+
+            alert("Uploaded!");
+        });
+    </script>
+
+</body>
+
+</html>

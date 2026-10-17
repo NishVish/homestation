@@ -1,0 +1,616 @@
+{% load static %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-chart-financial@0.1.1/dist/chartjs-chart-financial.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hammerjs@2.0.8/hammer.min.js"></script>
+
+<style>
+    .cc-wrap *,
+    .cc-wrap *::before,
+    .cc-wrap *::after {
+        box-sizing: border-box;
+    }
+
+    .cc-wrap {
+        background: #0d0f14;
+        color: #c9d1d9;
+        font-family: 'JetBrains Mono', 'Fira Code', monospace;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid #1e2330;
+    }
+
+    .cc-header {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 10px 16px;
+        background: #0d0f14;
+        border-bottom: 1px solid #1e2330;
+        flex-shrink: 0;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    .cc-header h2 {
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        color: #e6edf3;
+        text-transform: uppercase;
+        margin: 0;
+    }
+
+    .cc-toolbar {
+        display: flex;
+        gap: 4px;
+        margin-left: auto;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .cc-tool-group {
+        display: flex;
+        gap: 2px;
+        background: #161b22;
+        border: 1px solid #1e2330;
+        border-radius: 6px;
+        padding: 3px;
+        align-items: center;
+    }
+
+    .cc-btn {
+        background: none;
+        border: none;
+        color: #8b949e;
+        cursor: pointer;
+        padding: 5px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        transition: background 0.15s, color 0.15s;
+        white-space: nowrap;
+        font-family: inherit;
+    }
+
+    .cc-btn:hover {
+        background: #21262d;
+        color: #e6edf3;
+    }
+
+    .cc-btn.active {
+        background: #1f6feb;
+        color: #fff;
+    }
+
+    .cc-btn svg {
+        width: 13px;
+        height: 13px;
+        flex-shrink: 0;
+    }
+
+    .cc-swatch {
+        width: 13px;
+        height: 13px;
+        border-radius: 50%;
+        border: 2px solid #30363d;
+        cursor: pointer;
+        background: #f0c040;
+        flex-shrink: 0;
+    }
+
+    .cc-select {
+        background: #161b22;
+        border: 1px solid #1e2330;
+        color: #c9d1d9;
+        border-radius: 4px;
+        padding: 3px 5px;
+        font-size: 11px;
+        font-family: inherit;
+        cursor: pointer;
+    }
+
+    .cc-charts-row {
+        display: flex;
+        height: 460px;
+        overflow: hidden;
+    }
+
+    .cc-pane {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        border-right: 1px solid #1e2330;
+        position: relative;
+        min-width: 0;
+    }
+
+    .cc-pane:last-child {
+        border-right: none;
+    }
+
+    .cc-pane-header {
+        display: flex;
+        align-items: center;
+        padding: 5px 10px;
+        background: #161b22;
+        border-bottom: 1px solid #1e2330;
+        flex-shrink: 0;
+        gap: 6px;
+    }
+
+    .cc-pane-label {
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        color: #58a6ff;
+        text-transform: uppercase;
+    }
+
+    .cc-pane-btn {
+        margin-left: auto;
+        background: none;
+        border: 1px solid #1e2330;
+        color: #8b949e;
+        cursor: pointer;
+        padding: 2px 7px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-family: inherit;
+        transition: all 0.15s;
+    }
+
+    .cc-pane-btn:hover {
+        border-color: #58a6ff;
+        color: #58a6ff;
+    }
+
+    .cc-canvas-wrap {
+        flex: 1;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cc-chart-canvas {
+        position: absolute !important;
+        inset: 0;
+        width: 100% !important;
+        height: 100% !important;
+    }
+
+    .cc-draw-layer {
+        position: absolute;
+        inset: 0;
+        z-index: 10;
+        cursor: crosshair;
+        display: none;
+    }
+
+    .cc-draw-layer.active {
+        display: block;
+    }
+
+    .cc-ch-h,
+    .cc-ch-v {
+        position: absolute;
+        pointer-events: none;
+        z-index: 5;
+        display: none;
+    }
+
+    .cc-ch-h {
+        left: 0;
+        right: 0;
+        height: 1px;
+        border-top: 1px dashed rgba(88, 166, 255, 0.4);
+    }
+
+    .cc-ch-v {
+        top: 0;
+        bottom: 0;
+        width: 1px;
+        border-left: 1px dashed rgba(88, 166, 255, 0.4);
+    }
+
+    .cc-status {
+        padding: 4px 14px;
+        background: #0d0f14;
+        border-top: 1px solid #1e2330;
+        font-size: 10px;
+        color: #484f58;
+        display: flex;
+        gap: 20px;
+        flex-shrink: 0;
+    }
+
+    .cc-status span {
+        color: #8b949e;
+    }
+</style>
+
+<div class="cc-wrap">
+
+    <!-- Header / Toolbar -->
+    <div class="cc-header">
+        <h2>⬛ Candle Charts</h2>
+        <div class="cc-toolbar">
+
+            <div class="cc-tool-group">
+                <button class="cc-btn active" id="cc-btn-pan" onclick="ccSetMode('pan')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="1" />
+                        <path
+                            d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                    </svg>
+                    Pan
+                </button>
+                <button class="cc-btn" id="cc-btn-line" onclick="ccSetMode('line')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="4" y1="20" x2="20" y2="4" />
+                    </svg>
+                    Line
+                </button>
+                <button class="cc-btn" id="cc-btn-hline" onclick="ccSetMode('hline')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="3" y1="12" x2="21" y2="12" />
+                    </svg>
+                    H-Line
+                </button>
+                <button class="cc-btn" id="cc-btn-rect" onclick="ccSetMode('rect')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="5" width="18" height="14" rx="1" />
+                    </svg>
+                    Box
+                </button>
+                <button class="cc-btn" id="cc-btn-text" onclick="ccSetMode('text')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M4 7V4h16v3M9 20h6M12 4v16" />
+                    </svg>
+                    Text
+                </button>
+            </div>
+
+            <div class="cc-tool-group">
+                <button class="cc-btn" id="cc-btn-erase" onclick="ccSetMode('erase')">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M20 20H7L3 16l10-10 7 7-3.5 3.5" />
+                    </svg>
+                    Erase
+                </button>
+                <button class="cc-btn" onclick="ccClearAll()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="3 6 5 6 21 6" />
+                        <path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
+                    </svg>
+                    Clear
+                </button>
+            </div>
+
+            <div class="cc-tool-group" style="gap:7px; padding: 3px 9px;">
+                <span style="font-size:10px;color:#484f58;">COLOR</span>
+                <div class="cc-swatch" id="cc-swatch" onclick="document.getElementById('cc-color-input').click()"></div>
+                <input type="color" id="cc-color-input" value="#f0c040" style="display:none"
+                    onchange="ccDrawColor=this.value; document.getElementById('cc-swatch').style.background=this.value;">
+                <span style="font-size:10px;color:#484f58;">SIZE</span>
+                <select class="cc-select" onchange="ccLineWidth=+this.value">
+                    <option value="1">1px</option>
+                    <option value="2" selected>2px</option>
+                    <option value="3">3px</option>
+                    <option value="5">5px</option>
+                </select>
+            </div>
+
+            <div class="cc-tool-group">
+                <button class="cc-btn" onclick="ccResetAll()">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8" />
+                        <line x1="8" y1="11" x2="14" y2="11" />
+                        <line x1="11" y1="8" x2="11" y2="14" />
+                    </svg>
+                    Reset Zoom
+                </button>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="cc-charts-row">
+
+        <div class="cc-pane">
+            <div class="cc-pane-header">
+                <span class="cc-pane-label">4H</span>
+                <button class="cc-pane-btn" onclick="ccResetZoom('cc-chart4h')">Reset</button>
+            </div>
+            <div class="cc-canvas-wrap" id="cc-wrap-cc-chart4h">
+                <canvas class="cc-chart-canvas" id="cc-chart4h"></canvas>
+                <canvas class="cc-draw-layer" id="cc-draw-cc-chart4h"></canvas>
+                <div class="cc-ch-h" id="cc-chh-cc-chart4h"></div>
+                <div class="cc-ch-v" id="cc-chv-cc-chart4h"></div>
+            </div>
+        </div>
+
+        <div class="cc-pane">
+            <div class="cc-pane-header">
+                <span class="cc-pane-label">1H</span>
+                <button class="cc-pane-btn" onclick="ccResetZoom('cc-chart1h')">Reset</button>
+            </div>
+            <div class="cc-canvas-wrap" id="cc-wrap-cc-chart1h">
+                <canvas class="cc-chart-canvas" id="cc-chart1h"></canvas>
+                <canvas class="cc-draw-layer" id="cc-draw-cc-chart1h"></canvas>
+                <div class="cc-ch-h" id="cc-chh-cc-chart1h"></div>
+                <div class="cc-ch-v" id="cc-chv-cc-chart1h"></div>
+            </div>
+        </div>
+
+        <div class="cc-pane">
+            <div class="cc-pane-header">
+                <span class="cc-pane-label">15M</span>
+                <button class="cc-pane-btn" onclick="ccResetZoom('cc-chart15m')">Reset</button>
+            </div>
+            <div class="cc-canvas-wrap" id="cc-wrap-cc-chart15m">
+                <canvas class="cc-chart-canvas" id="cc-chart15m"></canvas>
+                <canvas class="cc-draw-layer" id="cc-draw-cc-chart15m"></canvas>
+                <div class="cc-ch-h" id="cc-chh-cc-chart15m"></div>
+                <div class="cc-ch-v" id="cc-chv-cc-chart15m"></div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Status bar -->
+    <div class="cc-status">
+        <div>MODE: <span id="cc-status-mode">PAN</span></div>
+        <div>HINT: <span id="cc-status-hint">Drag to pan · Scroll to zoom</span></div>
+        <div id="cc-status-coords" style="margin-left:auto;"></div>
+    </div>
+
+</div><!-- /.cc-wrap -->
+
+<script>
+    (function () {
+        // ── State ────────────────────────────────────────────
+        let ccMode = 'pan';
+        let ccDrawColor = '#f0c040';
+        let ccLineWidth = 2;
+        const ccCharts = {};
+        const ccStates = {};
+
+        const CC_IDS = ['cc-chart4h', 'cc-chart1h', 'cc-chart15m'];
+
+        const CC_HINTS = {
+            pan: 'Drag to pan · Scroll to zoom',
+            line: 'Click & drag to draw a trend line',
+            hline: 'Click to place a horizontal level',
+            rect: 'Click & drag to draw a box',
+            text: 'Click to add a text annotation',
+            erase: 'Click near a shape to erase it',
+        };
+
+        // ── Mode ─────────────────────────────────────────────
+        window.ccSetMode = function (mode) {
+            ccMode = mode;
+            ['pan', 'line', 'hline', 'rect', 'text', 'erase'].forEach(m => {
+                const b = document.getElementById('cc-btn-' + m);
+                if (b) b.classList.toggle('active', m === mode);
+            });
+            document.getElementById('cc-status-mode').textContent = mode.toUpperCase();
+            document.getElementById('cc-status-hint').textContent = CC_HINTS[mode] || '';
+
+            CC_IDS.forEach(id => {
+                const dl = document.getElementById('cc-draw-' + id);
+                if (!dl) return;
+                if (mode === 'pan') {
+                    dl.classList.remove('active');
+                } else {
+                    dl.classList.add('active');
+                    dl.style.cursor = mode === 'erase' ? 'not-allowed' : 'crosshair';
+                }
+                if (ccCharts[id]) {
+                    ccCharts[id].options.plugins.zoom.pan.enabled = (mode === 'pan');
+                    ccCharts[id].update('none');
+                }
+            });
+        };
+
+        window.ccResetZoom = function (id) { if (ccCharts[id]) ccCharts[id].resetZoom(); };
+        window.ccResetAll = function () { CC_IDS.forEach(id => ccResetZoom(id)); };
+        window.ccClearAll = function () {
+            CC_IDS.forEach(id => { if (ccStates[id]) { ccStates[id].shapes = []; ccRedraw(id); } });
+        };
+
+        // ── Chart builder ─────────────────────────────────────
+        function ccFormatCandles(candles) {
+            return candles.map(c => ({ x: +c[0], o: +c[1], h: +c[2], l: +c[3], c: +c[4] }));
+        }
+
+        function ccBuildChart(id, candles, label) {
+            const canvas = document.getElementById(id);
+            if (!canvas) return;
+            const chart = new Chart(canvas.getContext('2d'), {
+                type: 'candlestick',
+                data: {
+                    datasets: [{
+                        label,
+                        data: ccFormatCandles(candles),
+                        color: { up: '#26a69a', down: '#ef5350', unchanged: '#999' },
+                        borderColor: { up: '#26a69a', down: '#ef5350', unchanged: '#999' },
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: false,
+                    layout: { padding: 6 },
+                    scales: {
+                        x: { type: 'linear', grid: { color: '#1e2330' }, ticks: { color: '#484f58', font: { size: 9, family: 'monospace' } } },
+                        y: { position: 'right', grid: { color: '#1e2330' }, ticks: { color: '#484f58', font: { size: 9, family: 'monospace' } } },
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: '#161b22', borderColor: '#1e2330', borderWidth: 1,
+                            titleColor: '#58a6ff', bodyColor: '#c9d1d9',
+                            callbacks: { label: ctx => { const d = ctx.raw; return [`O:${d.o}  H:${d.h}`, `L:${d.l}  C:${d.c}`]; } }
+                        },
+                        zoom: {
+                            pan: { enabled: true, mode: 'x' },
+                            zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
+                        }
+                    }
+                }
+            });
+            ccCharts[id] = chart;
+            ccSetupDraw(id);
+            ccSetupCrosshair(id);
+        }
+
+        // ── Drawing ───────────────────────────────────────────
+        function ccSetupDraw(chartId) {
+            const wrap = document.getElementById('cc-wrap-' + chartId);
+            const dl = document.getElementById('cc-draw-' + chartId);
+            if (!wrap || !dl) return;
+            const ctx = dl.getContext('2d');
+            ccStates[chartId] = { shapes: [], isDrawing: false, snapshot: null };
+
+            function resize() {
+                dl.width = wrap.clientWidth;
+                dl.height = wrap.clientHeight;
+                ccRedraw(chartId);
+            }
+            new ResizeObserver(resize).observe(wrap);
+            resize();
+
+            dl.addEventListener('mousedown', e => {
+                if (ccMode === 'pan') return;
+                const { offsetX: x, offsetY: y } = e;
+                const s = ccStates[chartId];
+
+                if (ccMode === 'text') {
+                    const txt = prompt('Annotation text:');
+                    if (txt) { s.shapes.push({ type: 'text', x, y, text: txt, color: ccDrawColor, lw: ccLineWidth }); ccRedraw(chartId); }
+                    return;
+                }
+                if (ccMode === 'hline') {
+                    s.shapes.push({ type: 'hline', y, color: ccDrawColor, lw: ccLineWidth }); ccRedraw(chartId); return;
+                }
+                if (ccMode === 'erase') { ccErase(chartId, x, y); return; }
+
+                s.isDrawing = true; s.startX = x; s.startY = y;
+                s.snapshot = ctx.getImageData(0, 0, dl.width, dl.height);
+            });
+
+            dl.addEventListener('mousemove', e => {
+                const { offsetX: x, offsetY: y } = e;
+                const s = ccStates[chartId];
+                if (!s.isDrawing) return;
+                ctx.putImageData(s.snapshot, 0, 0);
+                ccDrawShape(ctx, ccMode, s.startX, s.startY, x, y, ccDrawColor, ccLineWidth, dl.width, dl.height);
+            });
+
+            dl.addEventListener('mouseup', e => {
+                const { offsetX: x, offsetY: y } = e;
+                const s = ccStates[chartId];
+                if (!s.isDrawing) return;
+                s.isDrawing = false;
+                if (Math.abs(x - s.startX) > 2 || Math.abs(y - s.startY) > 2)
+                    s.shapes.push({ type: ccMode, x1: s.startX, y1: s.startY, x2: x, y2: y, color: ccDrawColor, lw: ccLineWidth });
+                ccRedraw(chartId);
+            });
+
+            dl.addEventListener('mouseleave', () => { ccStates[chartId].isDrawing = false; });
+        }
+
+        function ccDrawShape(ctx, type, x1, y1, x2, y2, color, lw) {
+            ctx.strokeStyle = color; ctx.lineWidth = lw;
+            ctx.beginPath();
+            if (type === 'line') { ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke(); }
+            else if (type === 'rect') {
+                ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+                ctx.fillStyle = color + '22'; ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+            }
+        }
+
+        function ccRedraw(chartId) {
+            const dl = document.getElementById('cc-draw-' + chartId);
+            if (!dl) return;
+            const ctx = dl.getContext('2d');
+            ctx.clearRect(0, 0, dl.width, dl.height);
+            (ccStates[chartId]?.shapes || []).forEach(s => {
+                ctx.strokeStyle = s.color; ctx.lineWidth = s.lw || 2;
+                if (s.type === 'line') {
+                    ctx.beginPath(); ctx.moveTo(s.x1, s.y1); ctx.lineTo(s.x2, s.y2); ctx.stroke();
+                } else if (s.type === 'rect') {
+                    ctx.strokeRect(s.x1, s.y1, s.x2 - s.x1, s.y2 - s.y1);
+                    ctx.fillStyle = s.color + '22'; ctx.fillRect(s.x1, s.y1, s.x2 - s.x1, s.y2 - s.y1);
+                } else if (s.type === 'hline') {
+                    ctx.setLineDash([6, 4]); ctx.beginPath();
+                    ctx.moveTo(0, s.y); ctx.lineTo(dl.width, s.y); ctx.stroke(); ctx.setLineDash([]);
+                } else if (s.type === 'text') {
+                    ctx.fillStyle = s.color;
+                    ctx.font = `bold ${11 + (s.lw || 2) * 2}px monospace`;
+                    ctx.fillText(s.text, s.x, s.y);
+                }
+            });
+        }
+
+        function ccErase(chartId, x, y, thresh = 16) {
+            const s = ccStates[chartId];
+            s.shapes = s.shapes.filter(sh => {
+                if (sh.type === 'hline') return Math.abs(sh.y - y) > thresh;
+                if (sh.type === 'text') return Math.hypot(sh.x - x, sh.y - y) > thresh * 2;
+                const mx = (sh.x1 + sh.x2) / 2, my = (sh.y1 + sh.y2) / 2;
+                return Math.hypot(mx - x, my - y) > thresh * 3;
+            });
+            ccRedraw(chartId);
+        }
+
+        // ── Crosshair ─────────────────────────────────────────
+        function ccSetupCrosshair(chartId) {
+            const wrap = document.getElementById('cc-wrap-' + chartId);
+            const ch = document.getElementById('cc-chh-' + chartId);
+            const cv = document.getElementById('cc-chv-' + chartId);
+            if (!wrap || !ch || !cv) return;
+            wrap.addEventListener('mousemove', e => {
+                const r = wrap.getBoundingClientRect();
+                const x = e.clientX - r.left, y = e.clientY - r.top;
+                ch.style.display = 'block'; ch.style.top = y + 'px';
+                cv.style.display = 'block'; cv.style.left = x + 'px';
+                document.getElementById('cc-status-coords').textContent = `x:${Math.round(x)}  y:${Math.round(y)}`;
+            });
+            wrap.addEventListener('mouseleave', () => { ch.style.display = 'none'; cv.style.display = 'none'; });
+        }
+
+        // ── Load ──────────────────────────────────────────────
+        fetch("../candledata/{{current.id}}/")
+            .then(r => r.json())
+            .then(data => {
+                // console.log(data.fifteen);
+                // console.log(data.fourhour[0][7]);
+                // console.log(data.fifteen.at(-1)[4]);
+                // console.log(data.fourhour[0][4]);
+                data.fourhour.at(-1)[4] = data.fifteen.at(-1)[4];
+                data.onehour.at(-1)[4] = data.fifteen.at(-1)[4];
+                // data.four[4] = data.fifteen[4];
+                ccBuildChart('cc-chart4h', data.fourhour, '4H');
+                ccBuildChart('cc-chart1h', data.onehour, '1H');
+                ccBuildChart('cc-chart15m', data.fifteen, '15M');
+            })
+            .catch(() => {
+                const now = Date.now();
+                const demo = (n, step) => Array.from({ length: n }, (_, i) => {
+                    const o = 100 + Math.sin(i * 0.3) * 10 + Math.random() * 4;
+                    const c = o + (Math.random() - 0.49) * 4;
+                    return [now - (n - i) * step, o, Math.max(o, c) + Math.random() * 2, Math.min(o, c) - Math.random() * 2, c];
+                });
+                ccBuildChart('cc-chart4h', demo(80, 14400000), '4H');
+                ccBuildChart('cc-chart1h', demo(100, 3600000), '1H');
+                ccBuildChart('cc-chart15m', demo(120, 900000), '15M');
+            });
+    })();
+</script>

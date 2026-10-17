@@ -1,0 +1,197 @@
+<!-- ANNOTATION FORM -->
+
+
+{% csrf_token %}
+
+
+<table>
+
+    <thead>
+        <tr>
+            <th class="candle-id">Candle ID</th>
+            <th>Analysis</th>
+            <th>Bias</th>
+            <th>Phase</th>
+            <th>Momentum</th>
+            <th>Decision</th>
+        </tr>
+    </thead>
+
+    <tbody>
+
+        <!-- PREVIOUS -->
+
+        <tr>
+
+            <td>
+                <input type="text" name="previous_id" value="{{ previous_id }}" readonly>
+            </td>
+
+            <td>
+                <input type="text" name="previous_analysis" value="{{ previous_analysis }}">
+            </td>
+
+            <td>
+                <input type="text" name="previous_bias" value="{{ previous_bias }}">
+            </td>
+
+            <td>
+                <input type="text" name="previous_phase" value="{{ previous_phase }}">
+            </td>
+
+            <td>
+                <input type="text" name="previous_momentum" value="{{ previous_momentum }}">
+            </td>
+
+            <td>
+                <input type="text" name="previous_decision" value="{{ previous_decision }}">
+            </td>
+
+        </tr>
+
+
+        <!-- CURRENT -->
+
+        <tr>
+
+            <td>
+                <input type="text" name="current_id" value="{{ current_id }}" readonly>
+            </td>
+
+            <td>
+                <input type="text" name="current_analysis" value="{{ current_analysis }}">
+            </td>
+
+            <td>
+                <input type="text" name="current_bias" value="{{ current_bias }}">
+            </td>
+
+            <td>
+                <input type="text" name="current_phase" value="{{ current_phase }}">
+            </td>
+
+            <td>
+                <input type="text" name="current_momentum" value="{{ current_momentum }}">
+            </td>
+
+            <td>
+                <input type="text" name="current_decision" value="{{ current_decision }}">
+            </td>
+
+        </tr>
+
+
+        <!-- NEXT -->
+
+        <tr>
+
+            <td>
+                <input type="text" name="next_id" value="{{ next_id }}" readonly>
+            </td>
+
+            <td>
+                <input type="text" name="next_analysis" value="{{ next_analysis }}">
+            </td>
+
+            <td>
+                <input type="text" name="next_bias" value="{{ next_bias }}">
+            </td>
+
+            <td>
+                <input type="text" name="next_phase" value="{{ next_phase }}">
+            </td>
+
+            <td>
+                <input type="text" name="next_momentum" value="{{ next_momentum }}">
+            </td>
+
+            <td>
+                <input type="text" name="next_decision" value="{{ next_decision }}">
+            </td>
+
+        </tr>
+
+    </tbody>
+
+</table>
+
+<div style="display: flex; gap: 10px; margin-top: 20px;">
+
+    {% if previous_id %}
+    <button type="button" onclick="window.location.href='{% url 'interface' previous_id %}'">
+        Previous Candle
+    </button>
+    {% endif %}
+
+    {% if next_id %}
+    <button type="button" onclick="window.location.href='{% url 'interface' next_id %}'">
+        Next Candle
+    </button>
+    {% endif %}
+
+</div>
+
+<button type="submit" style="margin-top: 10px;">
+    Save Annotation
+</button>
+
+<script>
+
+    document.addEventListener("keydown", function (event) {
+
+        /* Ctrl + Space OR Left Shift + Space → Current Bias */
+        if ((event.ctrlKey && event.code === "Space") || (event.shiftKey && event.code === "Space" && event.location === KeyboardEvent.DOM_LOCATION_LEFT)) {
+
+            event.preventDefault();
+
+            const input = document.querySelector(
+                'input[name="current_bias"]'
+            );
+
+            if (input) {
+                input.focus();
+                input.select();
+            }
+
+            return;
+        }
+
+
+        /* Ctrl + Left Arrow → Previous Candle (DO NOT SAVE) */
+        if (event.ctrlKey && event.code === "ArrowLeft") {
+
+            event.preventDefault();
+
+            {% if previous_id %}
+            window.location.href =
+                "{% url 'interface' previous_id %}";
+            {% endif %}
+
+            return;
+        }
+
+
+        /* Ctrl + Right Arrow → Save + Next Candle */
+        if (event.ctrlKey && event.code === "ArrowRight") {
+
+            event.preventDefault();
+
+            const form = document.querySelector("form");
+
+            if (form) {
+
+                {% if next_id %}
+                form.action =
+                    "{% url 'savecandle' %}?next={{ next_id }}";
+
+                form.submit();
+                {% endif %}
+
+            }
+
+            return;
+        }
+
+    });
+
+</script>

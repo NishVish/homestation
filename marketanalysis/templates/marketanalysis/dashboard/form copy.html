@@ -1,0 +1,151 @@
+<form action={`updatebyid/${currentId}`} method="post">
+    <label>id</label>
+
+    <input type="text" name="id" value="99" />
+
+    <label>4H Time</label>
+    <input type="text" name="4h_time" value="1780344000" />
+
+    <label>4H Open</label>
+    <input type="text" name="4h_open" value="1.16297" />
+
+    <label>4H High</label>
+    <input type="text" name="4h_high" value="1.16377" />
+
+    <label>4H Low</label>
+    <input type="text" name="4h_low" value="1.1625" />
+
+    <label>4H Close</label>
+    <input type="text" name="4h_close" value="1.16313" />
+
+    <label>4H Direction</label>
+    <input type="text" name="4h_dir" value="bullish" />
+
+    <label>4H Group</label>
+    <input type="text" name="4h_group" value="1" />
+
+    <label>4H Bias</label>
+    <input type="text" name="4h_bias" value="Bearish" />
+
+    <label>4H Phase</label>
+    <input type="text" name="4h_phase" value="exhaustion" />
+
+    <label>4H Momentum</label>
+    <input type="text" name="4h_momentum" value="" />
+
+    <label>4H Pattern</label>
+    <input type="text" name="4h_pattern" value="" />
+
+    <label>4H ATR</label>
+    <input type="text" name="4h_atr" value="" />
+
+    <label>4H RSI</label>
+    <input type="text" name="4h_rsi" value="" />
+
+
+    <label>1H Time</label>
+    <input type="text" name="1h_time" value="1780354800" />
+
+    <label>1H Open</label>
+    <input type="text" name="1h_open" value="1.16315" />
+
+    <label>1H High</label>
+    <input type="text" name="1h_high" value="1.16336" />
+
+    <label>1H Low</label>
+    <input type="text" name="1h_low" value="1.16304" />
+
+    <label>1H Close</label>
+    <input type="text" name="1h_close" value="1.16313" />
+
+    <label>1H Direction</label>
+    <input type="text" name="1h_dir" value="bearish" />
+
+    <label>1H Group</label>
+    <input type="text" name="1h_group" value="1" />
+
+    <label>1H Bias</label>
+    <input type="text" name="1h_bias" value="Bearish" />
+
+    <label>1H Phase</label>
+    <input type="text" name="1h_phase" value="push" />
+
+    <label>1H Momentum</label>
+    <input type="text" name="1h_momentum" value="" />
+
+    <label>1H Pattern</label>
+    <input type="text" name="1h_pattern" value="" />
+
+    <label>1H ATR</label>
+    <input type="text" name="1h_atr" value="" />
+
+    <label>1H RSI</label>
+    <input type="text" name="1h_rsi" value="" />
+
+
+    <label>15M Time</label>
+    <input type="text" name="15m_time" value="1780359300" />
+
+    <label>15M Open</label>
+    <input type="text" name="15m_open" value="1.1629" />
+
+    <label>15M High</label>
+    <input type="text" name="15m_high" value="1.16348" />
+
+    <label>15M Low</label>
+    <input type="text" name="15m_low" value="1.16287" />
+
+    <label>15M Close</label>
+    <input type="text" name="15m_close" value="1.16343" />
+
+    <label>15M Direction</label>
+    <input type="text" name="15m_dir" value="bullish" />
+
+    <label>15M Group</label>
+    <input type="text" name="15m_group" value="1" />
+
+    <label>15M Bias</label>
+    <input type="text" name="15m_bias" value="Bearish" />
+
+    <label>15M Phase</label>
+    <input type="text" name="15m_phase" value="exhaustion" />
+
+    <label>15M Momentum</label>
+    <input type="text" name="15m_momentum" value="" />
+
+    <label>15M Pattern</label>
+    <input type="text" name="15m_pattern" value="" />
+
+    <label>15M ATR</label>
+    <input type="text" name="15m_atr" value="" />
+
+    <label>15M RSI</label>
+    <input type="text" name="15m_rsi" value="" />
+    <label>Action</label>
+    <input type="text" name="action" value="" />
+    <label>Verify</label>
+    <input type="text" name="verified_id" value="" />
+
+    <button type="submit">Update</button>
+</form>
+<script>
+    let currentId = 100;
+
+    function loadData(id) {
+        fetch(`databyid/${id}/`)
+            .then(res => res.json())
+            .then(res => {
+                const data = res.data?.[2]; // first record
+
+                if (!data) return;
+
+                Object.keys(data).forEach(key => {
+                    const el = document.querySelector(`[name="${key}"]`);
+                    if (el) el.value = data[key];
+                });
+            });
+    }
+
+
+    loadData(currentId);
+</script>

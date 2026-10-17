@@ -1,0 +1,80 @@
+<form id="form">
+    <input type="file" name="image" accept="image/*" capture>
+    <button type="submit">Scan</button>
+</form>
+
+<p id="result"></p>
+
+<div>
+    <a href="http://{{ server_ip }}/qr">
+        http://{{ server_ip }}/qr
+    </a>
+
+    <p>Scan this with your mobile to access "{{ server_ip }}/qr"</p>
+
+    <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=http://{{ server_ip }}/qr">
+</div>
+<hr>
+
+
+<h3>📌 Last QR (server)</h3>
+<p id="last"></p>
+
+<h3>📊 All QR Logs</h3>
+<ul id="logs"></ul>
+
+<script>
+
+    async function loadLogs() {
+
+        // last QR
+        const lastRes = await fetch("qr/last/");
+        const lastData = await lastRes.json();
+
+        document.getElementById("last").innerText =
+            lastData.qr_data
+                ? `${lastData.timestamp} → ${lastData.qr_data}`
+                : "No data";
+
+        // all logs
+        const allRes = await fetch("qr/all/");
+        const allData = await allRes.json();
+
+        const list = document.getElementById("logs");
+        list.innerHTML = "";
+
+        if (allData.logs) {
+            allData.logs.reverse().forEach(item => {
+                const li = document.createElement("li");
+                li.innerText = `${item.timestamp} → ${item.qr_data}`;
+                list.appendChild(li);
+            });
+        }
+    }
+
+
+    // scan upload
+    document.getElementById("form").addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(e.target);
+
+        const res = await fetch("qr/upload/", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await res.json();
+
+        document.getElementById("result").innerText =
+            data.result ? "QR: " + data.result : "No QR found";
+
+        // refresh logs after scan
+        loadLogs();
+    });
+
+
+    // initial load
+    loadLogs();
+
+</script>

@@ -1,0 +1,83 @@
+<button onclick="goPrev()">Previous</button>
+<button onclick="goNext()">Next</button>
+
+
+
+<script>
+    function goPrev() {
+        window.location.href = "/marketanalysis/{{ current.id|add:'-1' }}/";
+    }
+
+    function goNext() {
+        window.location.href = "/marketanalysis/{{ current.id|add:'1' }}/";
+    }
+</script>
+
+<div id="output"></div>
+
+<style>
+    .setting-form {
+        width: 100%;
+        max-height: 80vh;
+        overflow: auto;
+        /* Enables both horizontal & vertical scrolling */
+        border: 1px solid #ccc;
+        padding: 10px;
+    }
+
+    .setting-form table {
+        white-space: nowrap;
+        /* Prevents columns from wrapping */
+    }
+</style>
+
+<div class="setting-form">
+<h2>Previous</h2>
+<table border="1">
+    <tr>
+        {% for key, value in previous.items %}
+        <th>{{ key }}</th>
+        {% endfor %}
+    </tr>
+    <tr>
+        {% for key, value in previous.items %}
+        <td>{{ value }}</td>
+        {% endfor %}
+    </tr>
+</table>
+
+<h2>Current</h2>
+<form method="post" action="../updatebyid/{{ current.id }}/">
+    {% csrf_token %}
+    <table border="1">
+        <tr>
+            {% for key, value in current.items %}
+            <th>{{ key }}</th>
+            {% endfor %}
+        </tr>
+        <tr>
+            {% for key, value in current.items %}
+            <td>
+                <input type="text" name="{{ key }}" value="{{ value }}">
+            </td>
+            {% endfor %}
+        </tr>
+    </table>
+
+    <br>
+    <button type="submit">Update</button>
+</form>
+
+<h2>Next</h2>
+<table border="1">
+    <tr>
+        {% for key, value in next.items %}
+        <th>{{ key }}</th>
+        {% endfor %}
+    </tr>
+    <tr>
+        {% for key, value in next.items %}
+        <td>{{ value }}</td>
+        {% endfor %}
+    </tr>
+</table></div>

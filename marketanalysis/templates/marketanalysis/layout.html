@@ -1,0 +1,79 @@
+<style>
+    body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: #f4f6f8;
+    }
+
+    .dashboard {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        box-sizing: border-box;
+    }
+
+    .panel {
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .panel-header {
+        padding: 10px 14px;
+        font-weight: bold;
+        background: #fafafa;
+        border-bottom: 1px solid #eee;
+    }
+
+    .panel-body {
+        padding: 10px;
+    }
+
+    /* Charts: fixed height for visibility */
+    .charts-panel .panel-body {
+        height: 45vh;
+    }
+
+    /* Settings: scrollable long form */
+    .settings-panel .panel-body {
+        max-height: 55vh;
+        overflow: auto;
+    }
+
+    /* Optional nicer scrollbars */
+    .panel-body::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .panel-body::-webkit-scrollbar-thumb {
+        background: #ccc;
+        border-radius: 4px;
+    }
+
+    .panel-body::-webkit-scrollbar-thumb:hover {
+        background: #aaa;
+    }
+</style>
+
+<div class="dashboard">
+
+    <!-- CHARTS -->
+    <div class="panel charts-panel">
+        <div class="panel-header">📊 Charts</div>
+        <div class="panel-body">
+            {% include "marketanalysis/dashboard/charts.html" %}
+        </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="panel settings-panel">
+        <div class="panel-header">⚙ Settings</div>
+        <div class="panel-body">
+            {% include "marketanalysis/dashboard/setting.html" %}
+        </div>
+    </div>
+
+</div>

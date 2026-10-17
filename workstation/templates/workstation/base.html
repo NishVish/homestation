@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Workstation</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #121212;
+            color: #e0e0e0;
+        }
+
+        .workspace {
+            display: flex;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .left {
+            width: 65%;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #2d2d2d;
+            box-sizing: border-box;
+            background: #121212;
+        }
+
+        .right {
+            width: 35%;
+            padding: 20px;
+            background: #1a1a1a;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        h2,
+        h3 {
+            margin-top: 0;
+            color: #ffffff;
+        }
+
+        /* Responsive Card Grid for Bookmarks */
+        .card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            width: 100%;
+        }
+
+        /* Dark Mode Card Design */
+        .card {
+            background: #1e1e1e;
+            border: 1px solid #2d2d2d;
+            border-radius: 8px;
+            padding: 1.25rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+            border-color: #3d3d3d;
+        }
+
+        .card-title {
+            margin-bottom: 1rem;
+            font-size: 1.2rem;
+            border-bottom: 1px solid #2d2d2d;
+            padding-bottom: 0.5rem;
+        }
+
+        .card-links {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        /* Modernized Link Styling */
+        .bookmark-link {
+            color: #64b5f6;
+            text-decoration: none;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            transition: color 0.15s ease;
+        }
+
+        .bookmark-link:hover {
+            color: #90caf9;
+            text-decoration: underline;
+        }
+
+        .link-icon {
+            font-size: 0.85rem;
+            margin-right: 0.5rem;
+            opacity: 0.6;
+        }
+
+        /* Fallback legacy group styling if needed */
+        .group {
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #2d2d2d;
+            border-radius: 8px;
+            background: #1e1e1e;
+        }
+
+        /* Global Button Layout adjustments */
+        .header-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            border: 1px solid #3d3d3d;
+            border-radius: 6px;
+            background: #2a2a2a;
+            color: #ffffff;
+            font-weight: bold;
+            text-decoration: none;
+            font-size: 0.9rem;
+            display: inline-block;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .btn:hover {
+            background: #383838;
+            border-color: #555555;
+        }
+
+        /* Dark Mode Notes Textarea */
+        textarea {
+            width: 100%;
+            flex-grow: 1;
+            height: 75vh;
+            resize: none;
+            font-family: 'Courier New', Courier, monospace;
+            padding: 12px;
+            box-sizing: border-box;
+            background: #1e1e1e;
+            color: #e0e0e0;
+            border: 1px solid #2d2d2d;
+            border-radius: 6px;
+            outline: none;
+            line-height: 1.5;
+        }
+
+        textarea:focus {
+            border-color: #444444;
+        }
+
+        .topbar {
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .status-msg {
+            font-size: 0.85em;
+            color: #888;
+            font-weight: bold;
+        }
+
+        .no-data {
+            color: #888;
+            text-align: center;
+            margin-top: 2rem;
+            font-style: italic;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+    </header>
+    <main class="workspace">
+        {% block workspace_content %}{% endblock %}
+    </main>
+
+    <div>
+        {% block qr %}{% endblock %}
+
+    </div>
+    <script>
+        // System Button Actions
+        function openNotes() { fetch("/workstation/open-notes/"); }
+        function openCSV() { fetch("/workstation/open-csv/"); }
+
+        // Core cookie parser shared by modules
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+    </script>
+    {% block workspace_js %}{% endblock %}
+
+</body>
+
+</html>

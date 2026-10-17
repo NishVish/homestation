@@ -1,0 +1,59 @@
+<h2>Raw Candle Details</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Set</th>
+            <th>No.</th>
+            <th>Time</th>
+            <th>Open</th>
+            <th>High</th>
+            <th>Low</th>
+            <th>Close</th>
+            <th>Direction</th>
+        </tr>
+    </thead>
+
+    <tbody>
+
+        {% for candle in previous %}
+        <tr>
+            <td>Previous</td>
+            <td>{{ candle.number }}</td>
+            <td>{{ candle.time }}</td>
+            <td>{{ candle.open }}</td>
+            <td>{{ candle.high }}</td>
+            <td>{{ candle.low }}</td>
+            <td>{{ candle.close }}</td>
+            <td>{{ candle.direction }}</td>
+        </tr>
+        {% endfor %}
+
+        {% for candle in current %}
+        <tr>
+            <td>Current</td>
+            <td>{{ candle.number }}</td>
+            <td>{{ candle.time }}</td>
+            <td>{{ candle.open }}</td>
+            <td>{{ candle.high }}</td>
+            <td>{{ candle.low }}</td>
+            <td>{{ candle.close }}</td>
+            <td>{{ candle.direction }}</td>
+        </tr>
+        {% endfor %}
+
+        {% for candle in next %}
+        <tr>
+            <td>Next</td>
+            <td>{{ candle.number }}</td>
+            <td>{{ candle.time }}</td>
+            <td>{{ candle.open }}</td>
+            <td>{{ candle.high }}</td>
+            <td>{{ candle.low }}</td>
+            <td>{{ candle.close }}</td>
+            <td>{{ candle.direction }}</td>
+        </tr>
+        {% endfor %}
+
+    </tbody>
+</table>

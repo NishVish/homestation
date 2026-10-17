@@ -1,0 +1,163 @@
+{
+  "personal": {
+    "firstName": "Nishant",
+    "lastName": "Vishwakarma",
+    "fullName": "Nishant Vishwakarma",
+    "email": "nishwakarma3@gmail.com",
+    "phone": "7909075195",
+    "location": "Bengaluru, India",
+    "linkedin": "https://linkedin.com/in/nishant-vishwakarma-5b39b9214",
+    "portfolio": "nishvish.github.io/profile",
+    "summary": "System-level developer building scalable backend systems, automation tools, and AI workflows."
+  },
+
+  "currentRole": {
+    "title": "Fullstack Developer",
+    "company": "Sphere Travelmedia and Exhibitions",
+    "location": "Bengaluru, India",
+    "startDate": "04/2026",
+    "status": "Present"
+  },
+
+  "experience": [
+    {
+      "title": "Fullstack Developer",
+      "company": "Sphere Travelmedia and Exhibitions",
+      "location": "Bengaluru",
+      "duration": "04/2026 – Present",
+      "responsibilities": [
+        "Rebuilt company website and backend using Laravel, improving performance, maintainability, and scalability",
+        "Improved UI/UX with cleaner layouts, navigation, and consistent branding",
+        "Built email and badge generation workflows based on user category and check-in checkpoints",
+        "Developed OCR card scanner and badge printing system for event operations",
+        "Integrated Ollama local AI workflows to automate internal processes",
+        "Built mass mailing system and workflows for lead conversion, exhibitor onboarding, and payment processing"
+      ]
+    },
+    {
+      "title": "Jr. Data Analyst",
+      "company": "Sphere Travelmedia and Exhibitions",
+      "location": "Bengaluru",
+      "duration": "04/2025 – 04/2026",
+      "responsibilities": [
+        "Built data collection tools and organized business data using multiple platforms",
+        "Designed centralized SQL database for structured storage",
+        "Migrated Excel data into SQL tables",
+        "Developed badge printing system for exhibition registrations and attendee management",
+        "Managed on-ground registration, badge printing, distribution, and volunteer coordination"
+      ]
+    },
+    {
+      "title": "Event Executive",
+      "company": "Sphere Travelmedia and Exhibitions",
+      "location": "Bengaluru",
+      "duration": "12/2023 – 04/2025",
+      "responsibilities": [
+        "Managed attendee and exhibitor data updates for registration workflows",
+        "Executed large-scale email and phone outreach campaigns",
+        "Coordinated with hosted buyers, exhibitors, and partners",
+        "Supported registration operations and helped shape automation systems"
+      ]
+    }
+  ],
+
+  "projects": [
+    {
+      "name": "AI-Powered RAG-Based Knowledge System",
+      "tech": ["Laravel", "MySQL", "LLM Integration"],
+      "highlights": [
+        "Built Retrieval-Augmented Generation system for FAQ and knowledge retrieval",
+        "Created API-driven AI response architecture using Laravel",
+        "Designed optimized database structure for knowledge storage",
+        "Implemented automated FAQ update pipeline",
+        "Integrated LLM-based contextual response generation"
+      ]
+    },
+    {
+      "name": "Local AI Code Generation Agent",
+      "tech": ["PHP", "Ollama", "cURL", "LLM Automation"],
+      "highlights": [
+        "Built autonomous AI agent generating PHP applications from prompts",
+        "Integrated Ollama (qwen2.5:14b) for offline code generation",
+        "Automated project scaffolding with folder/file creation",
+        "Engineered strict prompt system for raw executable code output",
+        "Implemented secure filesystem handling"
+      ]
+    },
+    {
+      "name": "PySwiss - Python Code Runner Environment",
+      "tech": ["Python"],
+      "highlights": [
+        "Offline Python execution and automation environment",
+        "Preloaded automation scripts with custom script support",
+        "Built FTP/QR file transfer, compression, and file tools",
+        "Designed productivity-focused automation workflow"
+      ]
+    },
+    {
+      "name": "Real-Time Gesture Control System",
+      "tech": ["Python", "MediaPipe", "Flask", "PyAutoGUI"],
+      "highlights": [
+        "Built real-time hand gesture OS control system",
+        "Designed gesture-to-key mapping engine",
+        "Added temporal stability filtering to reduce false triggers",
+        "Implemented hold-state key logic and system toggles",
+        "Optimized low-latency execution loop"
+      ]
+    },
+    {
+      "name": "Scale Identifier – Pitch Detection System",
+      "tech": ["Python"],
+      "highlights": [
+        "Built real-time vocal pitch detection system",
+        "Mapped frequency to 12 swarasthanas",
+        "Created radial visualization interface",
+        "Implemented auto-correlation and cent-based accuracy matching"
+      ]
+    }
+  ],
+
+  "skills": {
+    "languages": ["Python", "SQL", "PHP", "JavaScript", "MQL5"],
+    "frameworks": ["Laravel", "Django", "Express.js", "REST APIs"],
+    "databases": ["MySQL", "MongoDB"],
+    "versionControl": ["Git"],
+    "devops": ["Docker", "Linux Servers", "cPanel"],
+    "aiAndAutomation": ["Ollama", "LLM Workflows", "RAG Systems", "AI Agents"]
+  },
+
+  "education": [
+    {
+      "degree": "B.Tech in Electronics Engineering",
+      "institution": "Raajdhani Engineering College",
+      "location": "Bhubaneswar, Odisha",
+      "duration": "2018 – 2022"
+    },
+    {
+      "degree": "Diploma in Electrical Engineering",
+      "institution": "Koustuv School of Engineering",
+      "location": "Bhubaneswar, Odisha",
+      "duration": "2015 – 2018"
+    }
+  ],
+
+  "courses": [
+    {
+      "name": "Python DSA",
+      "platform": "Udemy",
+      "duration": "01/2026 – 04/2026",
+      "topics": ["OOPs", "Linked Lists", "Stacks", "Queues", "Dynamic Programming"]
+    },
+    {
+      "name": "Data Analyst",
+      "platform": "IBM",
+      "duration": "03/2023 – 06/2023",
+      "topics": ["SQL", "Python", "Excel", "IBM Cognos"]
+    },
+    {
+      "name": "Python For Trading",
+      "platform": "QuantInsti",
+      "duration": "04/2023"
+    }
+  ]
+}

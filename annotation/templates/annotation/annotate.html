@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Annotate</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        .status {
+            padding: 10px;
+            margin-bottom: 20px;
+            border: 1px solid #ccc;
+        }
+
+        .chart-section {
+            width: 100%;
+            height: 500px;
+            border: 1px solid #ccc;
+            margin-bottom: 30px;
+            overflow-x: auto;
+        }
+
+        #candleChart {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            border: 1px solid #ccc;
+            padding: 8px;
+        }
+
+        th {
+            background: #f2f2f2;
+        }
+
+        input {
+            width: 100%;
+            box-sizing: border-box;
+            padding: 7px;
+        }
+
+        .candle-id {
+            width: 100px;
+        }
+
+        button {
+            margin-top: 15px;
+            padding: 10px 25px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Annotation</h1>
+
+    <div class="status">
+        {% if db_status %}
+        Database data loaded successfully.
+        Current Candle ID: {{ current_id }}
+        {% else %}
+        Database data unavailable.
+        {% endif %}
+    </div>
+
+
+    <!-- SECTION 1: CURRENT CANDLE CHART -->
+
+    <div class="chart-section">
+        <canvas id="candleChart"></canvas>
+    </div>
+
+
+    <!-- SECTION 2: ANNOTATION FORM -->
+
+    <form method="POST" action="{% url 'savecandle' %}">
+        {% csrf_token %}
+
+        <table>
+
+            <thead>
+                <tr>
+                    <th class="candle-id">Candle ID</th>
+                    <th>Analysis</th>
+                    <th>Bias</th>
+                    <th>Phase</th>
+                    <th>Momentum</th>
+                    <th>Decision</th>
+                </tr>
+            </thead>
+
+            <tbody>
+
+                <!-- PREVIOUS -->
+
+                <tr>
+                    <td>
+                        <input type="text" name="previous_id" value="{{ previous_id }}" readonly>
+                    </td>
+
+                    <td>
+                        <input type="text" name="previous_analysis">
+                    </td>
+
+                    <td>
+                        <input type="text" name="previous_bias">
+                    </td>
+
+                    <td>
+                        <input type="text" name="previous_phase">
+                    </td>
+
+                    <td>
+                        <input type="text" name="previous_momentum">
+                    </td>
+
+                    <td>
+                        <input type="text" name="previous_decision">
+                    </td>
+                </tr>
+
+
+                <!-- CURRENT -->
+
+                <tr>
+                    <td>
+                        <input type="text" name="current_id" value="{{ current_id }}" readonly>
+                    </td>
+
+                    <td>
+                        <input type="text" name="current_analysis">
+                    </td>
+
+                    <td>
+                        <input type="text" name="current_bias">
+                    </td>
+
+                    <td>
+                        <input type="text" name="current_phase">
+                    </td>
+
+                    <td>
+                        <input type="text" name="current_momentum">
+                    </td>
+
+                    <td>
+                        <input type="text" name="current_decision">
+                    </td>
+                </tr>
+
+
+                <!-- NEXT -->
+
+                <tr>
+                    <td>
+                        <input type="text" name="next_id" value="{{ next_id }}" readonly>
+                    </td>
+
+                    <td>
+                        <input type="text" name="next_analysis">
+                    </td>
+
+                    <td>
+                        <input type="text" name="next_bias">
+                    </td>
+
+                    <td>
+                        <input type="text" name="next_phase">
+                    </td>
+
+                    <td>
+                        <input type="text" name="next_momentum">
+                    </td>
+
+                    <td>
+                        <input type="text" name="next_decision">
+                    </td>
+                </tr>
+
+            </tbody>
+
+        </table>
+
+        <button type="submit">
+            Save Annotation
+        </button>
+
+    </form>
+
+
+    {{ current|json_script:"current-candles" }}
+
+
+    <script>
+
+        const candles = JSON.parse(
+            document.getElementById("current-candles").textContent
+        );
+
+        const canvas = document.getElementById("candleChart");
+        const ctx = canvas.getContext("2d");
+
+        const candleWidth = 12;
+        const gap = 8;
+
+        canvas.width = Math.max(
+            800,
+            candles.length * (candleWidth + gap) + 60
+        );
+
+        canvas.height = 500;
+
+
+        if (candles.length > 0) {
+
+            const chartTop = 30;
+            const chartBottom = 450;
+
+            const highest = Math.max(
+                ...candles.map(c => Number(c.high))
+            );
+
+            const lowest = Math.min(
+                ...candles.map(c => Number(c.low))
+            );
+
+            const range = highest - lowest;
+
+
+            function priceToY(price) {
+
+                if (range === 0) {
+                    return (chartTop + chartBottom) / 2;
+                }
+
+                return chartBottom -
+                    (
+                        (price - lowest) / range
+                    ) *
+                    (chartBottom - chartTop);
+            }
+
+
+            candles.forEach((candle, index) => {
+
+                const x =
+                    30 +
+                    index * (candleWidth + gap);
+
+                const open = Number(candle.open);
+                const high = Number(candle.high);
+                const low = Number(candle.low);
+                const close = Number(candle.close);
+
+                const yOpen = priceToY(open);
+                const yHigh = priceToY(high);
+                const yLow = priceToY(low);
+                const yClose = priceToY(close);
+
+
+                /* Wick */
+
+                ctx.beginPath();
+
+                ctx.moveTo(
+                    x + candleWidth / 2,
+                    yHigh
+                );
+
+                ctx.lineTo(
+                    x + candleWidth / 2,
+                    yLow
+                );
+
+                ctx.stroke();
+
+
+                /* Candle body */
+
+                const bodyTop =
+                    Math.min(yOpen, yClose);
+
+                const bodyHeight =
+                    Math.max(
+                        Math.abs(yOpen - yClose),
+                        2
+                    );
+
+
+                if (close > open) {
+                    ctx.fillStyle = "green";
+                }
+                else if (close < open) {
+                    ctx.fillStyle = "red";
+                }
+                else {
+                    ctx.fillStyle = "gray";
+                }
+
+
+                ctx.fillRect(
+                    x,
+                    bodyTop,
+                    candleWidth,
+                    bodyHeight
+                );
+
+            });
+
+        }
+
+    </script>
+
+</body>
+
+</html>

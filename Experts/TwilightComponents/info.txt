@@ -1,0 +1,79 @@
+
+
+1 raw data
+2. continuous candle group
+3. level anotation
+4. group level array
+
+what i need is timeframe data
+analysis data
+ohlc + bias phase momentum level array
+
+
+
+have to make the analysis values numeric
+6) What to change (minimal changes, not redesign)
+
+You do NOT need to rewrite your logic.
+
+Just add mapping:
+
+Example mapping layer
+Bias
+Bullish → +1
+Bearish → -1
+Neutral → 0
+Momentum
+Strong Push → +3
+Weak Push → +2
+Weak Push 2 → +1
+Flat → 0
+Weak Pull → -1
+Strong Pull → -3
+Structure
+HH/HL → +2
+LL/LH → -2
+BOS bullish → +1
+BOS bearish → -1
+Range → 0
+Liquidity
+Buy-side sweep → +1
+Sell-side sweep → -1
+None → 0
+Volatility
+
+Instead of string:
+
+Expanding = +1
+Stable = 0
+Contracting = -1
+
+(or better: keep ratio numeric)
+
+
+
+
+
+
+15min data 
+
+
+this is 1st candle for 1hour so 
+
+what ever 15mins ohlc data is there its same for 1hour candle data then
+the next candle cand its the second candle  for 1hour candle now 1st candle ohlc data will add with 2nd candle ohlc data to make the 1hour candle ohlc data same like that 4candles for 1hour
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

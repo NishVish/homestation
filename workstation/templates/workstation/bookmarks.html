@@ -1,0 +1,134 @@
+<div class="left">
+    <div class="header-container">
+        <h2>📌 Bookmarks</h2>
+        <p>{{ server_ip }}</p>
+
+        {% include "workstation/urls.html" %}
+
+
+        <div class="topbar">
+            <a href="{% url 'open_csv' %}" class="btn">Edit CSV</a>
+        </div>
+    </div>
+
+    {% if groups %}
+    <div class="card-grid">
+        {% for group, items in groups.items %}
+        <div class="card">
+            <h3 class="card-title">{{ group }}</h3>
+            <div class="card-links">
+                {% for item in items %}
+                <a href="{{ item.link }}" class="bookmark-link">
+                    <span class="link-icon">🔗</span> {{ item.title }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <p class="no-data">No bookmarks found or parsed.</p>
+    {% endif %}
+
+</div>
+
+<style>
+    /* Header layout alignment */
+    .header-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    /* Clean, responsive CSS Grid layout */
+    .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+        width: 100%;
+    }
+
+    /* Individual Card Box Design */
+    .card {
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 1.25rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Card Heading and Border Divider */
+    .card-title {
+        margin-top: 0;
+        margin-bottom: 1rem;
+        font-size: 1.2rem;
+        color: #747474;
+        border-bottom: 2px solid #acadad;
+        padding-bottom: 0.5rem;
+    }
+
+    /* Link layout and wrapping stack */
+    .card-links {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    /* Interactive Bookmark Anchor Tags */
+    .bookmark-link {
+        color: #3182ce;
+        text-decoration: none;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        transition: color 0.15s ease;
+    }
+
+    .bookmark-link:hover {
+        color: #2b6cb0;
+        text-decoration: underline;
+    }
+
+    .link-icon {
+        font-size: 0.85rem;
+        margin-right: 0.5rem;
+        opacity: 0.7;
+    }
+
+    /* Edit CSV Button Custom Styling */
+    .btn {
+        display: inline-block;
+        background-color: #4a5568;
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: bold;
+        font-size: 0.9rem;
+        transition: background-color 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn:hover {
+        background-color: #2d3748;
+    }
+
+    /* Empty State Notice Styling */
+    .no-data {
+        color: #666;
+        text-align: center;
+        margin-top: 2rem;
+        font-style: italic;
+    }
+
+    .left::-webkit-scrollbar {
+        display: none;
+    }
+</style>

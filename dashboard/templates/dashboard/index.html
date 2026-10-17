@@ -1,0 +1,444 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Homestation - Home Server Dashboard</title>
+    <link rel="stylesheet" href="{% static 'dashboard/style.css' %}">
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
+</head>
+<body>
+    <header>
+        <div class="header-title">
+            <h1 id="app-title">Homestation Server</h1>
+            <p id="app-subtitle">Active Server: <span style="color: var(--accent-blue);">{{ server_info.hostname }}</span> ({{ server_info.ip }}) | OS: {{ server_info.os }}</p>
+        </div>
+        <div class="header-status">
+            <div class="status-indicator">
+                <span class="status-dot"></span>
+                <span id="connection-status">SERVER ONLINE</span>
+            </div>
+            <button id="refresh-button" class="refresh-btn" onclick="triggerRefresh()">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" class="refresh-icon">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89M9 11l3-3 3 3m-3-3v12" />
+                </svg>
+                <span>Refresh</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="dashboard-grid">
+        <!-- System Status Widget -->
+        <section class="card" id="widget-sys-status">
+            <h2 class="card-title">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+                </svg>
+                System Monitor
+            </h2>
+            <div class="sys-monitor">
+                <div class="progress-bar-container">
+                    <div class="progress-info">
+                        <span>CPU Usage</span>
+                        <span id="cpu-val">{{ system_status.cpu_usage }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="cpu-fill" class="progress-fill fill-purple" style="width: {{ system_status.cpu_usage }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="progress-bar-container">
+                    <div class="progress-info">
+                        <span>RAM Usage</span>
+                        <span id="ram-val">{{ system_status.ram_usage }}%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div id="ram-fill" class="progress-fill fill-teal" style="width: {{ system_status.ram_usage }}%;"></div>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">CPU Temp</div>
+                        <div class="stat-value" id="temp-val">{{ system_status.cpu_temp }} °C</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Storage Free</div>
+                        <div class="stat-value">{{ system_status.storage_free }}</div>
+                    </div>
+                </div>
+
+                <div class="stat-item" style="width: 100%;">
+                    <div class="stat-label">Uptime</div>
+                    <div class="stat-value" style="font-size: 0.95rem;">{{ system_status.uptime }}</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Smart Controls Widget -->
+        <section class="card" id="widget-controls">
+            <h2 class="card-title">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+                Smart Controls
+            </h2>
+            <div class="control-list">
+                <div class="control-item">
+                    <div class="control-info">
+                        <span class="control-name">Living Room Lights</span>
+                        <span class="control-status" id="lights-status">Status: OFF</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="lights-toggle" onchange="toggleControl('lights', this)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="control-item">
+                    <div class="control-info">
+                        <span class="control-name">AC Power Controller</span>
+                        <span class="control-status" id="ac-status">Status: OFF</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="ac-toggle" onchange="toggleControl('ac', this)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="control-item">
+                    <div class="control-info">
+                        <span class="control-name">Guest Wi-Fi Network</span>
+                        <span class="control-status" id="wifi-status">Status: ON</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="wifi-toggle" checked onchange="toggleControl('wifi', this)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="control-item">
+                    <div class="control-info">
+                        <span class="control-name">Auto System Updates</span>
+                        <span class="control-status" id="updates-status">Status: OFF</span>
+                    </div>
+                    <label class="switch">
+                        <input type="checkbox" id="updates-toggle" onchange="toggleControl('updates', this)">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <!-- Weather Widget -->
+        <section class="card" id="widget-weather">
+            <h2 class="card-title">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.001 4.001 0 003 15z" />
+                </svg>
+                Weather Info
+            </h2>
+            <div class="weather-details">
+                <div class="weather-header">
+                    <div class="weather-temp">{{ weather.temp }}°C</div>
+                    <div class="weather-info-main">
+                        <span class="weather-condition">{{ weather.condition }}</span>
+                        <span class="weather-loc">{{ weather.location }}</span>
+                    </div>
+                </div>
+                <div class="weather-grid">
+                    <div class="stat-item">
+                        <div class="stat-label">Humidity</div>
+                        <div class="stat-value">{{ weather.humidity }}%</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Wind Speed</div>
+                        <div class="stat-value">{{ weather.wind }}</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Media Player Widget -->
+        <section class="card" id="widget-media">
+            <h2 class="card-title">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+                </svg>
+                Now Playing
+            </h2>
+            <div class="media-card">
+                <div class="media-info">
+                    <div class="media-art" id="media-artwork">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2z" />
+                        </svg>
+                    </div>
+                    <div class="media-text">
+                        <span class="media-title" id="song-title">Chill Lofi Station</span>
+                        <span class="media-artist" id="song-artist">Homestation Radio</span>
+                    </div>
+                </div>
+
+                <div class="progress-bar-container">
+                    <div class="progress-bar" style="height: 4px;">
+                        <div id="media-fill" class="progress-fill fill-purple" style="width: 35%;"></div>
+                    </div>
+                </div>
+
+                <div class="media-controls">
+                    <button class="media-btn" onclick="mediaPrev()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.334 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z" />
+                        </svg>
+                    </button>
+                    <button class="media-btn play-pause" id="play-pause-btn" onclick="togglePlayPause()">
+                        <svg id="play-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" style="display: none;">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                        </svg>
+                        <svg id="pause-icon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    </button>
+                    <button class="media-btn" onclick="mediaNext()">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M11.934 12.8a1 1 0 000-1.6l-5.334-4A1 1 0 005 8v8a1 1 0 001.6.8l5.334-4zM19.934 12.8a1 1 0 000-1.6l-5.334-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.334-4z" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="volume-slider">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                    </svg>
+                    <input type="range" min="0" max="100" value="70" oninput="adjustVolume(this.value)">
+                    <span id="volume-val">70%</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Connected Devices Widget -->
+        <section class="card wide-card" id="widget-devices">
+            <h2 class="card-title">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Connected Devices
+            </h2>
+            <div class="device-table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Device Name</th>
+                            <th>IP Address</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody id="device-table-body">
+                        {% for device in devices %}
+                        <tr id="device-row-{{ forloop.index }}">
+                            <td><strong>{{ device.name }}</strong></td>
+                            <td style="color: var(--accent-blue); font-family: monospace;">{{ device.ip }}</td>
+                            <td>{{ device.type }}</td>
+                            <td>
+                                {% if device.status == 'online' %}
+                                <span class="badge badge-online">ONLINE</span>
+                                {% else %}
+                                <span class="badge badge-offline">OFFLINE</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- System Logs Widget -->
+        <section class="card" id="widget-logs">
+            <h2 class="card-title">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.246.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                Live Event Logs
+            </h2>
+            <div class="logs-list" id="logs-container">
+                {% for log in recent_logs %}
+                <div class="log-entry log-{{ log.tag|lower }}">
+                    <span class="log-time">{{ log.time }}</span>
+                    <span class="log-msg"><strong style="color: var(--text-secondary)">[{{ log.tag }}]</strong> {{ log.message }}</span>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <p>Homestation Framework Powered by Python & Django | Rendered at <span id="footer-time"></span></p>
+    </footer>
+
+    <!-- Interactive Logic Script -->
+    <script>
+        // Set rendered time
+        document.getElementById('footer-time').innerText = new Date().toLocaleTimeString();
+
+        // Control item interactions
+        function toggleControl(name, checkbox) {
+            const statusLabel = document.getElementById(`${name}-status`);
+            const isChecked = checkbox.checked;
+            const statusText = isChecked ? "ON" : "OFF";
+            
+            statusLabel.innerText = `Status: ${statusText}`;
+            
+            // Add visual glow to item on change
+            const itemElement = checkbox.closest('.control-item');
+            if (isChecked) {
+                itemElement.style.borderColor = 'var(--accent-teal)';
+            } else {
+                itemElement.style.borderColor = 'rgba(255, 255, 255, 0.03)';
+            }
+
+            // Append live log
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            appendLog(timeStr, 'SYSTEM', `${name.toUpperCase()} set to ${statusText}.`);
+        }
+
+        // Add Log helper
+        function appendLog(time, tag, msg) {
+            const logsContainer = document.getElementById('logs-container');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${tag.toLowerCase()}`;
+            entry.innerHTML = `
+                <span class="log-time">${time}</span>
+                <span class="log-msg"><strong style="color: var(--text-secondary)">[${tag}]</strong> ${msg}</span>
+            `;
+            logsContainer.insertBefore(entry, logsContainer.firstChild);
+        }
+
+        // Media Controls
+        let isPlaying = true;
+        let playInterval;
+        let mediaProgress = 35;
+        const songs = [
+            { title: "Chill Lofi Station", artist: "Homestation Radio" },
+            { title: "Midnight Synths", artist: "RetroWave.js" },
+            { title: "Electric Dreams", artist: "Cybernetic Orchestra" }
+        ];
+        let currentSongIndex = 0;
+
+        function startMediaTimer() {
+            clearInterval(playInterval);
+            playInterval = setInterval(() => {
+                if (isPlaying) {
+                    mediaProgress += 1;
+                    if (mediaProgress > 100) {
+                        mediaProgress = 0;
+                        mediaNext();
+                    }
+                    document.getElementById('media-fill').style.width = `${mediaProgress}%`;
+                }
+            }, 1000);
+        }
+        startMediaTimer();
+
+        function togglePlayPause() {
+            isPlaying = !isPlaying;
+            const playIcon = document.getElementById('play-icon');
+            const pauseIcon = document.getElementById('pause-icon');
+            
+            if (isPlaying) {
+                playIcon.style.display = 'none';
+                pauseIcon.style.display = 'block';
+                const now = new Date();
+                const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                appendLog(timeStr, 'MEDIA', 'Music playback resumed.');
+            } else {
+                playIcon.style.display = 'block';
+                pauseIcon.style.display = 'none';
+                const now = new Date();
+                const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                appendLog(timeStr, 'MEDIA', 'Music playback paused.');
+            }
+        }
+
+        function mediaNext() {
+            currentSongIndex = (currentSongIndex + 1) % songs.length;
+            updateSongInfo();
+        }
+
+        function mediaPrev() {
+            currentSongIndex = (currentSongIndex - 1 + songs.length) % songs.length;
+            updateSongInfo();
+        }
+
+        function updateSongInfo() {
+            const song = songs[currentSongIndex];
+            document.getElementById('song-title').innerText = song.title;
+            document.getElementById('song-artist').innerText = song.artist;
+            mediaProgress = 0;
+            document.getElementById('media-fill').style.width = '0%';
+            
+            // Neon flash artwork
+            const artwork = document.getElementById('media-artwork');
+            artwork.style.boxShadow = '0 0 25px var(--accent-purple)';
+            setTimeout(() => {
+                artwork.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
+            }, 500);
+
+            const now = new Date();
+            const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+            appendLog(timeStr, 'MEDIA', `Now playing: "${song.title}" by ${song.artist}`);
+        }
+
+        function adjustVolume(val) {
+            document.getElementById('volume-val').innerText = `${val}%`;
+        }
+
+        // Refresh system values mock
+        function triggerRefresh() {
+            const btn = document.getElementById('refresh-button');
+            const icon = btn.querySelector('.refresh-icon');
+            
+            // Spin animation
+            icon.style.transition = 'transform 1s ease-in-out';
+            icon.style.transform = 'rotate(360deg)';
+            
+            // Randomize stats
+            const newCpu = Math.floor(Math.random() * 45) + 10;
+            const newRam = Math.floor(Math.random() * 30) + 30;
+            const newTemp = (38 + Math.random() * 15).toFixed(1);
+
+            setTimeout(() => {
+                document.getElementById('cpu-val').innerText = `${newCpu}%`;
+                document.getElementById('cpu-fill').style.width = `${newCpu}%`;
+                document.getElementById('ram-val').innerText = `${newRam}%`;
+                document.getElementById('ram-fill').style.width = `${newRam}%`;
+                document.getElementById('temp-val').innerText = `${newTemp} °C`;
+                
+                icon.style.transition = 'none';
+                icon.style.transform = 'rotate(0deg)';
+                
+                const now = new Date();
+                const timeStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                appendLog(timeStr, 'SYSTEM', `Dashboard metrics refreshed. CPU: ${newCpu}%, Temp: ${newTemp}°C.`);
+            }, 1000);
+        }
+
+        // Add periodic background load simulation
+        setInterval(() => {
+            if (Math.random() > 0.7) {
+                const cpuValSpan = document.getElementById('cpu-val');
+                const cpuFill = document.getElementById('cpu-fill');
+                let currentCpu = parseInt(cpuValSpan.innerText);
+                let diff = Math.floor(Math.random() * 11) - 5; // -5% to +5%
+                let newCpu = Math.max(5, Math.min(95, currentCpu + diff));
+                cpuValSpan.innerText = `${newCpu}%`;
+                cpuFill.style.width = `${newCpu}%`;
+            }
+        }, 3000);
+    </script>
+</body>
+</html>

@@ -1,0 +1,29 @@
+<script>
+    fetch("/marketanalysis/data/4h/")
+        .then(r => r.json())
+        .then(res => {
+            console.log(res);
+
+            const output = document.getElementById("output");
+
+            res.data.forEach((candle, i) => {
+                console.log("Candle", i, candle);
+
+                output.innerHTML += `
+                <div style="margin-bottom:20px">
+                    <b>${i + 1}</b><br>
+                    Time: ${candle.time}<br>
+                    Open: ${candle.open}<br>
+                    High: ${candle.high}<br>
+                    Low: ${candle.low}<br>
+                    Close: ${candle.close}<br>
+                    Dir: ${candle.dir}<br>
+                    Group: ${candle.group}
+                </div>
+            `;
+            });
+        })
+        .catch(console.error);
+</script>
+
+<div id="output"></div>

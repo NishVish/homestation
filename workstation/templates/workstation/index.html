@@ -1,0 +1,50 @@
+{% extends "workstation/base.html" %}
+{% block workspace_content %}
+{% include "workstation/bookmarks.html" %}
+{% include "workstation/notes.html" %}
+{% endblock %}
+
+{% block workspace_js %}
+<script>
+    const notesBox = document.getElementById('notesBox');
+    const statusDiv = document.getElementById('status');
+    let saveTimeout = null;
+
+    function saveNotes() {
+        statusDiv.textContent = "Saving...";
+        statusDiv.style.color = "orange";
+
+        fetch("/workstation/save-notes/", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken")
+            },
+            body: JSON.stringify({ notes: notesBox.value })
+        })
+            .then(response => {
+                if (response.ok) {
+                    statusDiv.textContent = "Saved";
+                    statusDiv.style.color = "green";
+                } else {
+                    statusDiv.textContent = "Error saving";
+                    statusDiv.style.color = "red";
+                }
+            })
+            .catch(error => {
+                statusDiv.textContent = "Connection error";
+                statusDiv.style.color = "red";
+                console.error("Error:", error);
+            });
+    }
+
+    notesBox.addEventListener('input', () => {
+        statusDiv.textContent = "Typing...";
+        statusDiv.style.color = "#666";
+        clearTimeout(saveTimeout);
+        saveTimeout = setTimeout(saveNotes, 800);
+    });
+</script>
+{% include "workstation/qr.html" %}
+
+{% endblock %}

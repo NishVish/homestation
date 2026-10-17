@@ -1,0 +1,809 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+
+    <title>Laravel Editor</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/xml/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/php/php.min.js"></script>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+
+            font-family: Arial, sans-serif;
+
+            background: #1e1e1e;
+
+            overflow: hidden;
+        }
+
+        /* HEADER */
+
+        .header {
+            height: 50px;
+            width: 100%;
+
+            background: #222;
+
+            color: white;
+
+            display: flex;
+
+            align-items: center;
+
+            padding-left: 20px;
+
+            flex-shrink: 0;
+        }
+
+        /* CONTROLLERS */
+
+        .controllers {
+            margin-left: 30px;
+
+            display: flex;
+
+            gap: 5px;
+
+            overflow-x: auto;
+
+            white-space: nowrap;
+        }
+
+        .controllers a {
+            background: #555;
+
+            color: white;
+
+            padding: 5px 10px;
+
+            text-decoration: none;
+
+            border-radius: 3px;
+
+            font-size: 14px;
+
+            flex-shrink: 0;
+        }
+
+        .controllers a:hover {
+            background: #008cff;
+        }
+
+        /* SAVE */
+
+        .save-area {
+            margin-left: auto;
+
+            margin-right: 20px;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            flex-shrink: 0;
+        }
+
+        #save-button {
+            background: #008cff;
+
+            color: white;
+
+            border: 0;
+
+            border-radius: 4px;
+
+            padding: 7px 16px;
+
+            font-size: 14px;
+
+            cursor: pointer;
+        }
+
+        #save-button:hover {
+            background: #0074d9;
+        }
+
+        #save-button:disabled {
+            background: #555;
+
+            cursor: wait;
+        }
+
+        #save-status {
+            font-size: 13px;
+
+            min-width: 100px;
+        }
+
+        .save-success {
+            color: #4caf50;
+        }
+
+        .save-error {
+            color: #ff5252;
+        }
+
+        /* EDITORS */
+
+        .editors {
+            display: grid;
+
+            grid-template-columns:
+                repeat(3, minmax(0, 1fr));
+
+            height: calc(100vh - 50px);
+
+            width: 100%;
+
+            min-height: 0;
+        }
+
+        .panel {
+            min-width: 0;
+
+            min-height: 0;
+
+            border-right: 1px solid #333;
+
+            display: flex;
+
+            flex-direction: column;
+
+            overflow: hidden;
+        }
+
+        .title {
+            background: #444;
+
+            color: white;
+
+            padding: 8px;
+
+            text-align: center;
+
+            font-weight: bold;
+
+            height: 40px;
+
+            line-height: 24px;
+
+            flex-shrink: 0;
+        }
+
+        .editor-box {
+            flex: 1;
+
+            min-height: 0;
+
+            overflow-y: auto;
+
+            overflow-x: hidden;
+
+            background: #282a36;
+        }
+
+        /* CONTROLLER */
+
+        .controller-box {
+            height: 100%;
+
+            min-height: 0;
+
+            overflow: hidden;
+        }
+
+        .controller-box .CodeMirror {
+            height: 100%;
+        }
+
+        /* FILE TITLE */
+
+        .file-title {
+            height: 30px;
+
+            background: #292929;
+
+            color: #aaa;
+
+            padding: 6px 10px;
+
+            font-family:
+                Consolas,
+                "Courier New",
+                monospace;
+
+            font-size: 12px;
+
+            border-bottom: 1px solid #333;
+
+            border-top: 1px solid #333;
+
+            white-space: nowrap;
+
+            overflow: hidden;
+
+            text-overflow: ellipsis;
+
+            position: sticky;
+
+            top: 0;
+
+            z-index: 5;
+        }
+
+        /* FILE EDITOR */
+
+        .file-container {
+            width: 100%;
+
+            min-height: 300px;
+
+            height: 300px;
+
+            border-bottom: 1px solid #333;
+        }
+
+        .file-container .CodeMirror {
+            height: 100%;
+        }
+
+        /* CODEMIRROR */
+
+        .CodeMirror {
+            font-family:
+                Consolas,
+                "Courier New",
+                monospace;
+
+            font-size: 14px;
+
+            line-height: 1.5;
+
+            width: 100%;
+        }
+
+        .CodeMirror-scroll {
+            overflow-y: auto !important;
+
+            overflow-x: auto !important;
+
+            min-height: 100%;
+        }
+
+        .CodeMirror-vscrollbar {
+            overflow-y: scroll !important;
+        }
+
+        .CodeMirror-hscrollbar {
+            overflow-x: scroll !important;
+        }
+
+        /* SCROLLBAR */
+
+        .editor-box::-webkit-scrollbar,
+        .CodeMirror-scroll::-webkit-scrollbar,
+        .CodeMirror-vscrollbar::-webkit-scrollbar,
+        .CodeMirror-hscrollbar::-webkit-scrollbar {
+            width: 10px;
+
+            height: 10px;
+        }
+
+        .editor-box::-webkit-scrollbar-track,
+        .CodeMirror-scroll::-webkit-scrollbar-track,
+        .CodeMirror-vscrollbar::-webkit-scrollbar-track,
+        .CodeMirror-hscrollbar::-webkit-scrollbar-track {
+            background: #1e1e1e;
+        }
+
+        .editor-box::-webkit-scrollbar-thumb,
+        .CodeMirror-scroll::-webkit-scrollbar-thumb,
+        .CodeMirror-vscrollbar::-webkit-scrollbar-thumb,
+        .CodeMirror-hscrollbar::-webkit-scrollbar-thumb {
+            background: #555;
+
+            border-radius: 5px;
+        }
+
+        .editor-box::-webkit-scrollbar-thumb:hover,
+        .CodeMirror-scroll::-webkit-scrollbar-thumb:hover,
+        .CodeMirror-vscrollbar::-webkit-scrollbar-thumb:hover,
+        .CodeMirror-hscrollbar::-webkit-scrollbar-thumb:hover {
+            background: #777;
+        }
+    </style>
+
+</head>
+
+
+<body>
+
+    {% csrf_token %}
+
+
+    <div class="header">
+
+        <div>
+
+            {% include "editor/headpannel.html" %}
+
+        </div>
+
+
+        <div class="controllers">
+
+            {% for c in controllers %}
+
+            <a href="?controller={{ c.name }}">
+                {{ c.name }}
+            </a>
+
+            {% empty %}
+
+            No Controllers
+
+            {% endfor %}
+
+        </div>
+
+
+        <div class="save-area">
+
+            <button id="save-button" onclick="saveAllFiles()">
+
+                💾 Save
+
+            </button>
+
+            <span id="save-status"></span>
+
+        </div>
+
+    </div>
+
+
+    <div class="editors">
+
+
+        <!-- CONTROLLER -->
+
+        <div class="panel">
+
+            <div class="title">
+                Controller
+            </div>
+
+            <div class="editor-box controller-box">
+
+                <textarea id="controller-editor"
+                    data-path="{{ context.controller_file }}">{{ context.controller_code }}</textarea>
+
+            </div>
+
+        </div>
+
+
+        <!-- ROUTES -->
+
+        <div class="panel">
+
+            <div class="title">
+                Route
+            </div>
+
+            <div class="editor-box">
+
+                {% for route in context.routes %}
+
+                <div class="file-title">
+                    {{ route.name }}
+                </div>
+
+                <div class="file-container">
+
+                    <textarea class="route-editor" data-path="{{ route.path }}">{{ route.code }}</textarea>
+
+                </div>
+
+                {% empty %}
+
+                <div class="file-title">
+                    No Routes
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+
+        <!-- MODELS -->
+
+        <div class="panel">
+
+            <div class="title">
+                Model
+            </div>
+
+            <div class="editor-box">
+
+                {% for model in context.models %}
+
+                <div class="file-title">
+                    {{ model.name }}.php
+                </div>
+
+                <div class="file-container">
+
+                    <textarea class="model-editor" data-path="{{ model.path }}">{{ model.code }}</textarea>
+
+                </div>
+
+                {% empty %}
+
+                <div class="file-title">
+                    No Models
+                </div>
+
+                {% endfor %}
+
+            </div>
+
+        </div>
+
+
+    </div>
+
+
+    <script>
+
+        const editorOptions = {
+
+            mode: "application/x-httpd-php",
+
+            theme: "dracula",
+
+            lineNumbers: true,
+
+            lineWrapping: false,
+
+            indentUnit: 4,
+
+            tabSize: 4,
+
+            matchBrackets: true,
+
+            autoCloseBrackets: true,
+
+            viewportMargin: 50
+
+        };
+
+
+        /* CONTROLLER */
+
+        let controllerEditor = null;
+
+        const controllerTextarea =
+            document.getElementById(
+                "controller-editor"
+            );
+
+
+        if (controllerTextarea) {
+
+            controllerEditor =
+                CodeMirror.fromTextArea(
+                    controllerTextarea,
+                    editorOptions
+                );
+
+        }
+
+
+        /* MODEL EDITORS */
+
+        const modelEditors = [];
+
+        document
+            .querySelectorAll(".model-editor")
+            .forEach(function (textarea) {
+
+                const editor =
+                    CodeMirror.fromTextArea(
+                        textarea,
+                        editorOptions
+                    );
+
+                modelEditors.push({
+
+                    editor: editor,
+
+                    path:
+                        textarea.dataset.path
+
+                });
+
+            });
+
+
+        /* ROUTE EDITORS */
+
+        const routeEditors = [];
+
+        document
+            .querySelectorAll(".route-editor")
+            .forEach(function (textarea) {
+
+                const editor =
+                    CodeMirror.fromTextArea(
+                        textarea,
+                        editorOptions
+                    );
+
+                routeEditors.push({
+
+                    editor: editor,
+
+                    path:
+                        textarea.dataset.path
+
+                });
+
+            });
+
+
+        /* CSRF */
+
+        function getCookie(name) {
+
+            let cookieValue = null;
+
+            if (
+                document.cookie &&
+                document.cookie !== ""
+            ) {
+
+                const cookies =
+                    document.cookie.split(";");
+
+                for (
+                    let cookie of cookies
+                ) {
+
+                    cookie = cookie.trim();
+
+                    if (
+                        cookie.substring(
+                            0,
+                            name.length + 1
+                        ) === name + "="
+                    ) {
+
+                        cookieValue =
+                            decodeURIComponent(
+                                cookie.substring(
+                                    name.length + 1
+                                )
+                            );
+
+                        break;
+                    }
+                }
+            }
+
+            return cookieValue;
+        }
+
+
+        /* SAVE ONE FILE */
+
+        async function saveFile(
+            editor,
+            path
+        ) {
+
+            const code =
+                editor.getValue();
+
+            const response =
+                await fetch(
+                    "{% url 'save_file' %}",
+                    {
+
+                        method: "POST",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json",
+
+                            "X-CSRFToken":
+                                getCookie(
+                                    "csrftoken"
+                                )
+
+                        },
+
+                        body:
+                            JSON.stringify({
+
+                                path: path,
+
+                                code: code
+
+                            })
+
+                    }
+                );
+
+
+            const result =
+                await response.json();
+
+
+            if (
+                !response.ok ||
+                !result.success
+            ) {
+
+                throw new Error(
+                    result.error ||
+                    "Failed to save file"
+                );
+
+            }
+
+
+            return result;
+
+        }
+
+
+        /* SAVE ALL */
+
+        async function saveAllFiles() {
+
+            const button =
+                document.getElementById(
+                    "save-button"
+                );
+
+            const status =
+                document.getElementById(
+                    "save-status"
+                );
+
+
+            button.disabled = true;
+
+            status.textContent =
+                "Saving...";
+
+            status.className = "";
+
+
+            try {
+
+                /* CONTROLLER */
+
+                if (
+                    controllerEditor &&
+                    controllerTextarea.dataset.path
+                ) {
+
+                    await saveFile(
+
+                        controllerEditor,
+
+                        controllerTextarea
+                            .dataset
+                            .path
+
+                    );
+
+                }
+
+
+                /* MODELS */
+
+                for (
+                    const item of modelEditors
+                ) {
+
+                    await saveFile(
+
+                        item.editor,
+
+                        item.path
+
+                    );
+
+                }
+
+
+                /* ROUTES */
+
+                for (
+                    const item of routeEditors
+                ) {
+
+                    await saveFile(
+
+                        item.editor,
+
+                        item.path
+
+                    );
+
+                }
+
+
+                status.textContent =
+                    "✓ All files saved";
+
+                status.className =
+                    "save-success";
+
+
+            }
+            catch (error) {
+
+                console.error(error);
+
+                status.textContent =
+                    "✗ " + error.message;
+
+                status.className =
+                    "save-error";
+
+            }
+
+
+            button.disabled = false;
+
+
+            setTimeout(
+                function () {
+
+                    status.textContent = "";
+
+                    status.className = "";
+
+                },
+                4000
+            );
+
+        }
+
+    </script>
+
+
+</body>
+
+</html>

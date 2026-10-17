@@ -1,0 +1,125 @@
+asdasddfsdsdsddsf ffddds sddsd
+.\venv\Scripts\Activate.ps1
+
+hkey local machine\system\curretnControlset \Control\Print
+
+https://www.linkedin.com/in/nishant-vishwa-karma
+
+razor pay
+rzp_test_TX54aHMIF83jQZ
+KU8CWeUxKh6AyJeO43F73tmI
+
+
+
+https://www.youtube.com/watch?v=AdgYT71N9aE
+
+
+
+
+
+
+
+
+
+Dear Yuan, I would be delighted to connect with you at ATM to explore potential opportunities across India, the Middle East and Southeast Asia through our B2B travel trade events known as OTR.  I’ll be available on +91 81470 13706. Let me know what time works best for you, and we can set up a quick meeting at ATM.
+
+
+
+
+langchain and mcp treat them as simple function and teach me .....slowly....
+http://127.0.0.1:8000/forexdata/test/
+{"status": "ok", "message": "Django is reachable", "method": "GET"}
+
+https://www.fmovies.gd/movie/453395
+https://fmovies.today/tv/387
+https://yomi.to/watch/154587/4
+
+
+python -m venv .venv
+
+.\.venv\Scripts\Activate.ps1
+
+Merging IITM Chennai Bangalore Data 2026-27
+
+
+192.168.1.196
+
+SELECT *
+FROM tradev
+ORDER BY id DESC
+LIMIT 100;
+
+nishant-vishwa-karma
+http://127.0.0.1:8000/marketanalysis/32/
+
+https://nishvish.github.io/profile/
+
+
+SELECT *
+FROM exhibitor
+where city ="bangalore"
+ORDER BY created_at DESC
+
+delect where company_name contains VyomOne  and city contains bangalore
+
+
+
+
+https://agiled.app/
+
+
+
+
+SELECT *
+FROM exhibitor
+where city ="chennai"
+ORDER BY created_at DESC
+LIMIT 200;
+
+
+
+
+pd.set_option("display.max_rows", None)
+pd.set_option("display.max_columns", None)
+pd.set_option("display.width", None)
+pd.set_option("display.max_colwidth", None)
+
+
+
+
+
+
+
+
+
+
+http://localhost/iitm/certificategenerator/
+create new dword 32 bit
+name rpc authiticatnion level privaceEnable
+
+value data 0
+
+ok
+ssh -p 8022 u0_a353@192.0.0.4
+services 
+
+printe spoller serice resrart 
+
+No 262 , 15th cross, Domlur Flyover, near mistral software, AK Colony, Bengaluru, Karnataka 560071
+
+Set-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\Print" -Name "RpcAuthnLevelPrivacyEnabled" -Type DWord -Value 0
+Restart-Service Spooler
+
+optionalfeatures
+
+https://www.youtube.com/watch?v=i03tDEdEvSQ
+
+reg add "HKLM\System\CurrentControlSet\Control\Print" /v RpcAuthnLevelPrivacyEnabled /t REG_DWORD /d 0 /f
+
+net stop spooler
+net start spooler
+
+
+API Key
+
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZjMyNDBjOTUzNWQ4MGUxYzhmYmViMSIsIm5hbWUiOiJTcGhlcmUgVHJhdmVsbWVkaWEiLCJhcHBOYW1lIjoiQWlTZW5zeSIsImNsaWVudElkIjoiNjlmMzI0MGM5NTM1ZDgwZTFjOGZiZWFjIiwiYWN0aXZlUGxhbiI6IkJBU0lDX01PTlRITFkiLCJpYXQiOjE3Nzc3MTcyNTR9.wph-Nd8_G9TiWbrruT-ns9U9dPiip9gGN5sC_nEPFaY
