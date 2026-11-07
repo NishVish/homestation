@@ -1,119 +1,63 @@
-<!-- ANNOTATION FORM -->
-
-
 {% csrf_token %}
 
+<!-- ANNOTATION FORM TABLE -->
 
 <table>
-
     <thead>
         <tr>
             <th class="candle-id">Candle ID</th>
-            <th>Analysis</th>
-            <th>Bias</th>
-            <th>Phase</th>
-            <th>Momentum</th>
-            <th>Decision</th>
+
+            {% for field in annotation_fields %}
+            <th>{{ field.label }}</th>
+            {% endfor %}
         </tr>
     </thead>
 
     <tbody>
-
-        <!-- PREVIOUS -->
-
+        <!-- PREVIOUS CANDLE -->
         <tr>
-
             <td>
-                <input type="text" name="previous_id" value="{{ previous_id }}" readonly>
+                <input type="text" name="previous_id" value="{{ previous_id|default_if_none:'' }}" readonly>
             </td>
 
+            {% for field in annotation_fields %}
             <td>
-                <input type="text" name="previous_analysis" value="{{ previous_analysis }}">
+                <input type="text" name="previous_{{ field.name }}"
+                    value="{{ field.previous_value|default_if_none:'' }}">
             </td>
-
-            <td>
-                <input type="text" name="previous_bias" value="{{ previous_bias }}">
-            </td>
-
-            <td>
-                <input type="text" name="previous_phase" value="{{ previous_phase }}">
-            </td>
-
-            <td>
-                <input type="text" name="previous_momentum" value="{{ previous_momentum }}">
-            </td>
-
-            <td>
-                <input type="text" name="previous_decision" value="{{ previous_decision }}">
-            </td>
-
+            {% endfor %}
         </tr>
 
-
-        <!-- CURRENT -->
-
+        <!-- CURRENT CANDLE -->
         <tr>
-
             <td>
-                <input type="text" name="current_id" value="{{ current_id }}" readonly>
+                <input type="text" name="current_id" value="{{ current_id|default_if_none:'' }}" readonly>
             </td>
 
+            {% for field in annotation_fields %}
             <td>
-                <input type="text" name="current_analysis" value="{{ current_analysis }}">
+                <input type="text" name="current_{{ field.name }}" value="{{ field.current_value|default_if_none:'' }}">
             </td>
-
-            <td>
-                <input type="text" name="current_bias" value="{{ current_bias }}">
-            </td>
-
-            <td>
-                <input type="text" name="current_phase" value="{{ current_phase }}">
-            </td>
-
-            <td>
-                <input type="text" name="current_momentum" value="{{ current_momentum }}">
-            </td>
-
-            <td>
-                <input type="text" name="current_decision" value="{{ current_decision }}">
-            </td>
-
+            {% endfor %}
         </tr>
 
-
-        <!-- NEXT -->
-
+        <!-- NEXT CANDLE -->
         <tr>
-
             <td>
-                <input type="text" name="next_id" value="{{ next_id }}" readonly>
+                <input type="text" name="next_id" value="{{ next_id|default_if_none:'' }}" readonly>
             </td>
 
+            {% for field in annotation_fields %}
             <td>
-                <input type="text" name="next_analysis" value="{{ next_analysis }}">
+                <input type="text" name="next_{{ field.name }}" value="{{ field.next_value|default_if_none:'' }}">
             </td>
-
-            <td>
-                <input type="text" name="next_bias" value="{{ next_bias }}">
-            </td>
-
-            <td>
-                <input type="text" name="next_phase" value="{{ next_phase }}">
-            </td>
-
-            <td>
-                <input type="text" name="next_momentum" value="{{ next_momentum }}">
-            </td>
-
-            <td>
-                <input type="text" name="next_decision" value="{{ next_decision }}">
-            </td>
-
+            {% endfor %}
         </tr>
-
     </tbody>
-
 </table>
+
+
+<!-- NAVIGATION BUTTONS -->
 
 <div style="display: flex; gap: 10px; margin-top: 20px;">
 
@@ -131,17 +75,29 @@
 
 </div>
 
+
+<!-- SAVE BUTTON -->
+
 <button type="submit" style="margin-top: 10px;">
     Save Annotation
 </button>
 
-<script>
 
+<!-- KEYBOARD SHORTCUTS -->
+
+<script>
     document.addEventListener("keydown", function (event) {
 
-        /* Ctrl + Space OR Left Shift + Space → Current Bias */
-        if ((event.ctrlKey && event.code === "Space") || (event.shiftKey && event.code === "Space" && event.location === KeyboardEvent.DOM_LOCATION_LEFT)) {
-
+        // Ctrl + Space OR Left Shift + Space:
+        // Focus the Current Bias input.
+        if (
+            (event.ctrlKey && event.code === "Space") ||
+            (
+                event.shiftKey &&
+                event.code === "Space" &&
+                event.location === KeyboardEvent.DOM_KEY_LOCATION_LEFT
+            )
+        ) {
             event.preventDefault();
 
             const input = document.querySelector(
@@ -156,10 +112,9 @@
             return;
         }
 
-
-        /* Ctrl + Left Arrow → Previous Candle (DO NOT SAVE) */
+        // Ctrl + Left Arrow:
+        // Navigate to the previous candle without saving.
         if (event.ctrlKey && event.code === "ArrowLeft") {
-
             event.preventDefault();
 
             {% if previous_id %}
@@ -170,28 +125,18 @@
             return;
         }
 
-
-        /* Ctrl + Right Arrow → Save + Next Candle */
+        // Ctrl + Right Arrow:
+        // Save the form and proceed to the next candle.
         if (event.ctrlKey && event.code === "ArrowRight") {
-
             event.preventDefault();
 
             const form = document.querySelector("form");
 
             if (form) {
-
-                {% if next_id %}
-                form.action =
-                    "{% url 'savecandle' %}?next={{ next_id }}";
-
+                form.action = "{% url 'savecandle' %}";
                 form.submit();
-                {% endif %}
-
             }
-
-            return;
         }
 
     });
-
 </script>

@@ -1,413 +1,191 @@
-
-import os
-import joblib
-import mysql.connector
-import pandas as pd
-
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.neighbors import KNeighborsClassifier
-
-
-# ============================================================
-# MODEL PATH
-# ============================================================
-
-MODEL_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "market_model.pkl"
-)
-
-
-# ============================================================
-# TARGET COLUMNS
-# These are what the model predicts
-# ============================================================
-
-TARGET_COLUMNS = [
-    "analysis",
-    "bias",
-    "phase",
-    "momentum"
-]
-
-
-# ============================================================
-# DATABASE CONNECTION
-# ============================================================
-
-def get_db_connection():
-
-    return mysql.connector.connect(
-        host="localhost",
-        user="root",
-        password="",
-        database="marketdata"
-    )
-
-
-# ============================================================
-# FIND TIME COLUMNS
-# ============================================================
-
-def get_time_columns(columns):
-
-    time_columns = []
-
-    for column in columns:
-
-        name = column.lower()
-
-        if (
-            "time" in name
-            or "date" in name
-            or "timestamp" in name
-        ):
-            time_columns.append(column)
-
-    return time_columns
-
-
-# ============================================================
-# TRAIN MODEL
-# ============================================================
-
-def train_model():
-
-    print("\nStarting training...")
-
-    db = get_db_connection()
-
-    try:
-
-        # ----------------------------------------------------
-        # ONLY COMPLETED / ANNOTATED ROWS
-        # ----------------------------------------------------
-
-        df = pd.read_sql(
-            """
-            SELECT *
-            FROM `1min`
-            WHERE edited = 1
-            """,
-            db
-        )
-
-    finally:
-
-        db.close()
-
-    training_rows = len(df)
-
-    print(
-        "Rows ready for training:",
-        training_rows
-    )
-
-    if training_rows == 0:
-
-        raise ValueError(
-            "No rows with edited = 1."
-        )
-
-    # ========================================================
-    # REMOVE NON-MODEL COLUMNS
-    # ========================================================
-
-    remove_columns = [
-        "id",
-        "edited",
-        "edittime"
-    ]
-
-    # Remove every time/date column
-    remove_columns.extend(
-        get_time_columns(df.columns)
-    )
-
-    remove_columns = set(
-        remove_columns
-    )
-
-    # ========================================================
-    # INPUT FEATURES
-    #
-    # Everything except:
-    # - ID
-    # - time
-    # - edited
-    # - edittime
-    # - prediction targets
-    # ========================================================
-
-    feature_columns = [
-        column
-        for column in df.columns
-        if column not in remove_columns
-        and column not in TARGET_COLUMNS
-    ]
-
-    print("\nFeatures:")
-
-    for column in feature_columns:
-
-        print(" ", column)
-
-    # ========================================================
-    # CREATE TEXT REPRESENTATION OF EACH CANDLE
-    # ========================================================
-
-    X = df[feature_columns].copy()
-
-    X = X.fillna("")
-
-    X = X.astype(str)
-
-    combined_text = X.apply(
-        lambda row: " ".join(
-            f"{column}={row[column]}"
-            for column in feature_columns
-        ),
-        axis=1
-    )
-
-    # ========================================================
-    # TF-IDF
-    # ========================================================
-
-    vectorizer = TfidfVectorizer(
-        lowercase=True,
-        ngram_range=(1, 2),
-        max_features=30000
-    )
-
-    X_vectorized = vectorizer.fit_transform(
-        combined_text
-    )
-
-    # ========================================================
-    # TRAIN ONE MODEL FOR EACH TARGET
-    # ========================================================
-
-    models = {}
-
-    for target in TARGET_COLUMNS:
-
-        print(
-            "\nTraining:",
-            target
-        )
-
-        y = df[target].fillna("").astype(str)
-
-        # ----------------------------------------------------
-        # Remove rows with empty target
-        # ----------------------------------------------------
-
-        valid = (y.str.strip() != "").to_numpy()
-
-        target_X = X_vectorized[valid]
-        target_y = y.iloc[valid]
-
-        if len(target_y) == 0:
-
-            print(
-                "No values for:",
-                target
-            )
-
-            continue
-
-        # ----------------------------------------------------
-        # 1-nearest-neighbor
-        #
-        # Works even with only ONE training row.
-        # ----------------------------------------------------
-
-        model = KNeighborsClassifier(
-            n_neighbors=1,
-            metric="cosine"
-        )
-
-        model.fit(
-            target_X,
-            target_y
-        )
-
-        models[target] = model
-
-        print(
-            "Training examples:",
-            len(target_y)
-        )
-
-        print(
-            "Unique values:",
-            target_y.nunique()
-        )
-
-    # ========================================================
-    # SAVE MODEL
-    # ========================================================
-
-    model_data = {
-        "vectorizer": vectorizer,
-        "models": models,
-        "feature_columns": feature_columns,
-        "targets": TARGET_COLUMNS
-    }
-
-    joblib.dump(
-        model_data,
-        MODEL_PATH
-    )
-
-    print("\n===================================")
-    print("MODEL TRAINED")
-    print("===================================")
-    print(
-        "Training rows:",
-        training_rows
-    )
-    print(
-        "Model saved:",
-        MODEL_PATH
-    )
-
-    return {
-        "status": "success",
-        "training_rows": training_rows,
-        "model_path": MODEL_PATH
-    }
-
-
-# ============================================================
-# PREDICTION
-# ============================================================
-
-def prediction(candle_id):
-
-    # ========================================================
-    # LOAD MODEL
-    # ========================================================
-
-    if not os.path.exists(MODEL_PATH):
-
-        raise FileNotFoundError(
-            "Model does not exist. "
-            "Run train_model() first."
-        )
-
-    model_data = joblib.load(
-        MODEL_PATH
-    )
-
-    vectorizer = model_data["vectorizer"]
-
-    models = model_data["models"]
-
-    feature_columns = model_data["feature_columns"]
-
-    # ========================================================
-    # GET CANDLE FROM MYSQL
-    # ========================================================
-
-    db = get_db_connection()
-
-    try:
-
-        cursor = db.cursor(
-            dictionary=True
-        )
-
-        cursor.execute(
-            """
-            SELECT *
-            FROM `1min`
-            WHERE id = %s
-            """,
-            (candle_id,)
-        )
-
-        row = cursor.fetchone()
-
-    finally:
-
-        db.close()
-
-    # ========================================================
-    # CHECK CANDLE
-    # ========================================================
-
-    if row is None:
-
-        raise ValueError(
-            f"Candle ID {candle_id} not found."
-        )
-
-    print(
-        "\nPredicting candle:",
-        candle_id
-    )
-
-    # ========================================================
-    # ONLY USE MODEL FEATURES
-    # ========================================================
-
-    data = {}
-
-    for column in feature_columns:
-
-        data[column] = row.get(
-            column,
-            ""
-        )
-
-    # ========================================================
-    # CREATE SAME TEXT FORMAT USED DURING TRAINING
-    # ========================================================
-
-    input_text = " ".join(
-        f"{column}={str(data[column])}"
-        for column in feature_columns
-    )
-
-    # ========================================================
-    # TF-IDF TRANSFORMATION
-    # ========================================================
-
-    X = vectorizer.transform(
-        [input_text]
-    )
-
-    # ========================================================
-    # PREDICT ALL FOUR TARGETS
-    # ========================================================
-
-    result = {}
-
-    for target in TARGET_COLUMNS:
-
-        if target not in models:
-
-            result[target] = ""
-
-            continue
-
-        model = models[target]
-
-        prediction_value = model.predict(
-            X
-        )[0]
-
-        result[target] = prediction_value
-
-    # ========================================================
-    # RETURN
-    # ========================================================
-
-    print(
-        "Prediction:",
-        result
-    )
-
-    return result
+# import json
+# import mysql.connector
+# import numpy as np
+# import pandas as pd
+# from sklearn.ensemble import RandomForestClassifier
+# from sklearn.impute import SimpleImputer
+# from sklearn.metrics import accuracy_score, classification_report
+# from sklearn.model_selection import train_test_split
+# from sklearn.pipeline import Pipeline
+# from sklearn.preprocessing import LabelEncoder
+
+# # ONNX specific imports
+# from skl2onnx import convert_sklearn
+# from skl2onnx.common.data_types import FloatTensorType
+
+
+# def get_connection():
+#   return mysql.connector.connect(
+#       host="localhost",
+#       user="root",
+#       password="",
+#       database="marketdata",
+#   )
+
+
+# # ------------------------------------------
+# # 1. FETCH DATA FROM MYSQL WITH CONSTRAINT
+# # ------------------------------------------
+# try:
+#   db = get_connection()
+#   query = 'SELECT * FROM `labeled_flatdata` WHERE `edited` = "1"'
+#   df = pd.read_sql(query, db)
+#   print(
+#       f"Successfully loaded {len(df)} filtered rows (edited = '1') from MySQL"
+#       " database."
+#   )
+# except Exception as e:
+#   print(f"Database connection or query failed: {e}")
+#   df = pd.DataFrame()
+# finally:
+#   if "db" in locals() and db.is_connected():
+#     db.close()
+
+
+# # ------------------------------------------
+# # 2. PROCEED ONLY IF DATA IS LOADED
+# # ------------------------------------------
+# if df.empty:
+#   print(
+#       "DataFrame is empty. Check your database connection, credentials, and"
+#       " whether any rows have edited = '1'."
+#   )
+# else:
+#   annotation_columns = [
+#       "was",
+#       "then",
+#       "currently",
+#       "future",
+#       "volatility",
+#       "bias",
+#       "phase",
+#       "momentum_direction",
+#       "momentum_strength",
+#       "setup",
+#       "momentum_candle",
+#       "decision",
+#   ]
+
+#   valid_targets = [col for col in annotation_columns if col in df.columns]
+#   print(f"Valid target columns found: {valid_targets}\n")
+
+#   # ------------------------------------------
+#   # 3. INPUT FEATURES: M1 PRICE COLUMNS
+#   # ------------------------------------------
+#   feature_columns = [
+#       col
+#       for col in df.columns
+#       if col.startswith("M1_")
+#       and not col.endswith("_time")
+#       and col.rsplit("_", 1)[-1] in {"open", "high", "low", "close"}
+#   ]
+
+#   X = df[feature_columns].copy()
+#   X = X.apply(pd.to_numeric, errors="coerce")
+#   X = X.replace([np.inf, -np.inf], np.nan)
+
+#   # ------------------------------------------
+#   # 4. TRAIN, EXPORT ONNX, & SAVE CLASSES JSON
+#   # ------------------------------------------
+#   models = {}
+#   label_encoders = {}
+#   results = {}
+
+#   for target in valid_targets:
+#     y_series = df[target].fillna("").astype(str).str.strip()
+#     valid = (
+#         df[target].notna()
+#         & y_series.ne("")
+#         & y_series.ne("nan")
+#         & y_series.ne("None")
+#         & y_series.ne("NULL")
+#     )
+
+#     X_target = X.loc[valid]
+#     y_raw = y_series.loc[valid]
+
+#     print(f"Target '{target}': found {len(y_raw)} valid labeled rows.")
+
+#     if len(y_raw) < 2:
+#       print(
+#           f"Skipping {target}: insufficient labeled rows ({len(y_raw)} found,"
+#           " need at least 2)."
+#       )
+#       continue
+
+#     encoder = LabelEncoder()
+#     y = encoder.fit_transform(y_raw)
+
+#     if len(encoder.classes_) < 2:
+#       print(
+#           f"Skipping {target}: only one unique label found ({encoder.classes_}).\n"
+#       )
+#       continue
+
+#     class_counts = pd.Series(y).value_counts()
+#     stratify = y if class_counts.min() >= 2 else None
+#     test_size = 0.2 if len(X_target) >= 5 else 0.5
+
+#     X_train, X_test, y_train, y_test = train_test_split(
+#         X_target,
+#         y,
+#         test_size=test_size,
+#         random_state=42,
+#         stratify=stratify,
+#     )
+
+#     model = Pipeline([
+#         ("imputer", SimpleImputer(strategy="median")),
+#         (
+#             "classifier",
+#             RandomForestClassifier(
+#                 n_estimators=100,
+#                 random_state=42,
+#                 class_weight="balanced",
+#                 n_jobs=-1,
+#             ),
+#         ),
+#     ])
+
+#     model.fit(X_train, y_train)
+
+#     predictions = model.predict(X_test)
+#     accuracy = accuracy_score(y_test, predictions)
+
+#     models[target] = model
+#     label_encoders[target] = encoder
+
+#     results[target] = {
+#         "accuracy": accuracy,
+#         "training_rows": len(X_train),
+#         "testing_rows": len(X_test),
+#         "classes": list(encoder.classes_),
+#     }
+
+#     print(f"\n{'=' * 50}")
+#     print(f"TARGET: {target}")
+#     print(f"Accuracy: {accuracy:.2%}")
+
+#     # 1. Export ONNX Model
+#     try:
+#       initial_type = [("float_input", FloatTensorType([None, X_target.shape[1]]))]
+#       onnx_model = convert_sklearn(model, initial_types=initial_type)
+
+#       onnx_filename = f"model_{target}.onnx"
+#       with open(onnx_filename, "wb") as f:
+#         f.write(onnx_model.SerializeToString())
+
+#       # 2. Save corresponding class labels JSON
+#       classes_filename = f"classes_{target}.json"
+#       with open(classes_filename, "w") as f:
+#         json.dump(list(encoder.classes_), f)
+
+#       print(f"Successfully exported '{onnx_filename}' and '{classes_filename}'")
+#     except Exception as e:
+#       print(f"Failed to export {target}: {e}")
+
+#     print("-" * 50 + "\n")
+
+#   if results:
+#     results_df = pd.DataFrame(results).T
+#     display(results_df)

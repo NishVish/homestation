@@ -1,0 +1,50 @@
+{
+    "was": {
+        "accuracy": 1.0,
+        "training_rows": 52
+    },
+    "then": {
+        "accuracy": 1.0,
+        "training_rows": 52
+    },
+    "currently": {
+        "accuracy": 0.9423076923076923,
+        "training_rows": 52
+    },
+    "future": {
+        "accuracy": 0.7115384615384616,
+        "training_rows": 52
+    },
+    "volatility": {
+        "accuracy": 1.0,
+        "training_rows": 52
+    },
+    "bias": {
+        "accuracy": 0.7115384615384616,
+        "training_rows": 52
+    },
+    "phase": {
+        "accuracy": 0.5,
+        "training_rows": 52
+    },
+    "momentum_direction": {
+        "accuracy": 1.0,
+        "training_rows": 52
+    },
+    "momentum_strength": {
+        "accuracy": 1.0,
+        "training_rows": 52
+    },
+    "setup": {
+        "accuracy": 1.0,
+        "training_rows": 52
+    },
+    "momentum_candle": {
+        "accuracy": 0.8846153846153846,
+        "training_rows": 52
+    },
+    "decision": {
+        "accuracy": 1.0,
+        "training_rows": 52
+    }
+}

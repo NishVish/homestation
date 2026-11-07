@@ -19,12 +19,10 @@ from django.urls import path, include
 
 urlpatterns = [
     path("annotation/", include("annotation.urls")),
-    path("forexdata/", include("forexdata.urls")),
     path('admin/', admin.site.urls),
     path('', include('dashboard.urls')),
     path('workstation/', include('workstation.urls')),
     path("rag/", include("rag.urls")),
-    path("marketanalysis/", include("marketanalysis.urls")),
     path("editor/", include("editor.urls")),
     path("agent/", include("agent.urls")),
     path("sql_visualizer/", include("sql_visualizer.urls"))

@@ -43,11 +43,11 @@ INSTALLED_APPS = [
     'dashboard.apps.DashboardConfig',
     'workstation.apps.WorkstationConfig',  
     'rag.apps.RagConfig',  
-    'marketanalysis.apps.MarketanalysisConfig',  
+ 
     'editor.apps.EditorConfig',
     'agent.apps.AgentConfig',  
     'sql_visualizer.apps.SqlVisualizerConfig',  
-    "forexdata",
+
     "annotation",
 ]
 

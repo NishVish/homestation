@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CSV Data Manager</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background: #f5f7fb;
+            color: #222;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 11px 18px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            color: white;
+            background: #2563eb;
+            font-size: 14px;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        .migrate {
+            background: #15803d;
+        }
+
+        #status {
+            margin: 15px 0;
+            white-space: pre-wrap;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+            background: white;
+            border-radius: 8px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        th {
+            background: #e8eefc;
+        }
+
+        tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Hello</h1>
+
+    <div class="actions">
+        <button onclick="previewCSV()">Preview CSV</button>
+        <button class="migrate" onclick="migrateCSV()">
+            Migrate CSV to SQL
+        </button>
+    </div>
+
+    <div id="status">Click Preview CSV to load the first 10 rows.</div>
+
+    <h2>Preview Table</h2>
+
+    <div class="table-wrap">
+        <table>
+            <thead id="table-head"></thead>
+            <tbody id="table-body"></tbody>
+        </table>
+    </div>
+
+    <h2>Response</h2>
+    <pre id="response"></pre>
+
+    <script>
+        async function callEndpoint(url) {
+            const status = document.getElementById("status");
+            const responseBox = document.getElementById("response");
+
+            status.textContent = "Processing...";
+            responseBox.textContent = "";
+
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                responseBox.textContent =
+                    JSON.stringify(data, null, 2);
+
+                if (!response.ok || data.success === false) {
+                    status.textContent =
+                        data.error || data.message || "Request failed";
+                    return null;
+                }
+
+                status.textContent =
+                    data.message || "Request completed successfully";
+
+                return data;
+            } catch (error) {
+                status.textContent = "Error: " + error.message;
+                return null;
+            }
+        }
+
+        async function previewCSV() {
+            const data = await callEndpoint("loadcsvtodf/");
+
+            if (!data) return;
+
+            const rows = data.data || data.preview || [];
+            renderTable(data.columns || [], rows);
+        }
+
+        async function migrateCSV() {
+            const data = await callEndpoint("migratecsvtosql/");
+
+            if (!data) return;
+
+            const rows = data.preview || data.data || [];
+            renderTable(data.columns || [], rows);
+        }
+
+        function renderTable(columns, rows) {
+            const head = document.getElementById("table-head");
+            const body = document.getElementById("table-body");
+
+            head.replaceChildren();
+            body.replaceChildren();
+
+            if (!columns.length && rows.length) {
+                columns = Object.keys(rows[0]);
+            }
+
+            const headerRow = document.createElement("tr");
+
+            columns.forEach(column => {
+                const th = document.createElement("th");
+                th.textContent = column;
+                headerRow.appendChild(th);
+            });
+
+            head.appendChild(headerRow);
+
+            rows.forEach(row => {
+                const tr = document.createElement("tr");
+
+                columns.forEach(column => {
+                    const td = document.createElement("td");
+                    const value = row[column];
+
+                    td.textContent = value == null
+                        ? ""
+                        : typeof value === "object"
+                            ? JSON.stringify(value)
+                            : String(value);
+
+                    tr.appendChild(td);
+                });
+
+                body.appendChild(tr);
+            });
+
+            if (!rows.length) {
+                const tr = document.createElement("tr");
+                const td = document.createElement("td");
+                td.colSpan = Math.max(columns.length, 1);
+                td.textContent = "No preview data available.";
+                tr.appendChild(td);
+                body.appendChild(tr);
+            }
+        }
+    </script>
+
+</body>
+
+</html>

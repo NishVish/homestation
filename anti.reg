@@ -1,0 +1,16 @@
+
+Windows Registry Editor Version 5.00
+
+[HKEY_CURRENT_USER\Software\Classes\Directory\shell\Antigravity]
+@="Open in Antigravity"
+"Icon"="antigravity.exe"
+
+[HKEY_CURRENT_USER\Software\Classes\Directory\shell\Antigravity\command]
+@="\"antigravity.exe\" \"%1\""
+
+[HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\Antigravity]
+@="Open in Antigravity"
+"Icon"="antigravity.exe"
+
+[HKEY_CURRENT_USER\Software\Classes\Directory\Background\shell\Antigravity\command]
+@="\"antigravity.exe\" \"%V\""
