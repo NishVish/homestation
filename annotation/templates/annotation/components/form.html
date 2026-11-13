@@ -1,74 +1,196 @@
 {% csrf_token %}
 
-<!-- ANNOTATION FORM TABLE -->
+<style>
+    .annotation-scroll-wrapper {
+        width: 100%;
+        height: 65vh;
+        overflow: auto;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 8px;
+        box-sizing: border-box;
+    }
 
-<table>
-    <thead>
-        <tr>
-            <th class="candle-id">Candle ID</th>
+    .annotation-container {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(220px, 1fr));
+        gap: 12px;
+        min-width: 700px;
+    }
+
+    .annotation-column {
+        min-width: 180px;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        padding: 12px;
+        background: #fff;
+    }
+
+    .annotation-column h3 {
+        font-size: 12px;
+        text-align: center;
+        padding: 10px;
+        margin: 0 0 12px;
+        background: #eee;
+        border-radius: 5px;
+    }
+
+    .annotation-column.current h3 {
+        background: #d4edda;
+    }
+
+    .field-group {
+        margin-bottom: 10px;
+    }
+
+    .field-group label {
+        font-size: 12px;
+        display: block;
+        font-weight: bold;
+        margin-bottom: 4px;
+    }
+
+    .field-group input {
+        height: 30px;
+        width: 100%;
+        padding: 7px;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .candle-id {
+        font-size: 12px;
+        font-weight: bold;
+        margin-bottom: 15px;
+    }
+
+    .navigation-buttons {
+        display: flex;
+        gap: 10px;
+        margin-top: 20px;
+    }
+</style>
+
+
+<!-- ANNOTATION AREA -->
+
+<div class="annotation-scroll-wrapper">
+
+    <div class="annotation-container">
+
+        <!-- PREVIOUS -->
+
+        <div class="annotation-column">
+
+            <h3>Previous</h3>
+
+            <div class="candle-id">
+                Candle ID:
+                <input type="text"
+                       value="{{ previous_id|default_if_none:'' }}"
+                       readonly>
+            </div>
 
             {% for field in annotation_fields %}
-            <th>{{ field.label }}</th>
-            {% endfor %}
-        </tr>
-    </thead>
 
-    <tbody>
-        <!-- PREVIOUS CANDLE -->
-        <tr>
-            <td>
-                <input type="text" name="previous_id" value="{{ previous_id|default_if_none:'' }}" readonly>
-            </td>
+                <div class="field-group">
+
+                    <label>{{ field.label }}</label>
+
+                    <input type="text"
+                           name="previous_{{ field.name }}"
+                           value="{{ field.previous_value|default_if_none:'' }}"
+                           readonly>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- CURRENT -->
+
+        <div class="annotation-column current">
+
+            <h3>Current – Decision</h3>
+
+            <div class="candle-id">
+                Candle ID:
+                <input type="text"
+                       name="current_id"
+                       value="{{ current_id|default_if_none:'' }}"
+                       readonly>
+            </div>
 
             {% for field in annotation_fields %}
-            <td>
-                <input type="text" name="previous_{{ field.name }}"
-                    value="{{ field.previous_value|default_if_none:'' }}">
-            </td>
-            {% endfor %}
-        </tr>
 
-        <!-- CURRENT CANDLE -->
-        <tr>
-            <td>
-                <input type="text" name="current_id" value="{{ current_id|default_if_none:'' }}" readonly>
-            </td>
+                <div class="field-group">
+
+                    <label>{{ field.label }}</label>
+
+                    <input type="text"
+                           name="current_{{ field.name }}"
+                           value="{{ field.current_value|default_if_none:'' }}"
+                           autofocus>
+
+                </div>
+
+            {% endfor %}
+
+        </div>
+
+
+        <!-- NEXT -->
+
+        <div class="annotation-column">
+
+            <h3>Next</h3>
+
+            <div class="candle-id">
+                Candle ID:
+                <input type="text"
+                       value="{{ next_id|default_if_none:'' }}"
+                       readonly>
+            </div>
 
             {% for field in annotation_fields %}
-            <td>
-                <input type="text" name="current_{{ field.name }}" value="{{ field.current_value|default_if_none:'' }}">
-            </td>
-            {% endfor %}
-        </tr>
 
-        <!-- NEXT CANDLE -->
-        <tr>
-            <td>
-                <input type="text" name="next_id" value="{{ next_id|default_if_none:'' }}" readonly>
-            </td>
+                <div class="field-group">
 
-            {% for field in annotation_fields %}
-            <td>
-                <input type="text" name="next_{{ field.name }}" value="{{ field.next_value|default_if_none:'' }}">
-            </td>
+                    <label>{{ field.label }}</label>
+
+                    <input type="text"
+                           name="next_{{ field.name }}"
+                           value="{{ field.next_value|default_if_none:'' }}"
+                           readonly>
+
+                </div>
+
             {% endfor %}
-        </tr>
-    </tbody>
-</table>
+
+        </div>
+
+    </div>
+
+</div>
 
 
 <!-- NAVIGATION BUTTONS -->
 
-<div style="display: flex; gap: 10px; margin-top: 20px;">
+<div class="navigation-buttons">
 
     {% if previous_id %}
-    <button type="button" onclick="window.location.href='{% url 'interface' previous_id %}'">
+    <button type="button"
+            onclick="window.location.href='{% url 'interface' previous_id %}'">
         Previous Candle
     </button>
     {% endif %}
 
     {% if next_id %}
-    <button type="button" onclick="window.location.href='{% url 'interface' next_id %}'">
+    <button type="button"
+            onclick="window.location.href='{% url 'interface' next_id %}'">
         Next Candle
     </button>
     {% endif %}
@@ -86,57 +208,57 @@
 <!-- KEYBOARD SHORTCUTS -->
 
 <script>
-    document.addEventListener("keydown", function (event) {
 
-        // Ctrl + Space OR Left Shift + Space:
-        // Focus the Current Bias input.
-        if (
-            (event.ctrlKey && event.code === "Space") ||
-            (
-                event.shiftKey &&
-                event.code === "Space" &&
-                event.location === KeyboardEvent.DOM_KEY_LOCATION_LEFT
-            )
-        ) {
-            event.preventDefault();
+document.addEventListener("keydown", function(event) {
 
-            const input = document.querySelector(
-                'input[name="current_bias"]'
-            );
+    // Ctrl + Space: Focus current decision
 
-            if (input) {
-                input.focus();
-                input.select();
-            }
+    if (event.ctrlKey && event.code === "Space") {
 
-            return;
+        event.preventDefault();
+
+        const input = document.querySelector(
+            'input[name="current_decision"]'
+        );
+
+        if (input) {
+            input.focus();
+            input.select();
         }
 
-        // Ctrl + Left Arrow:
-        // Navigate to the previous candle without saving.
-        if (event.ctrlKey && event.code === "ArrowLeft") {
-            event.preventDefault();
+        return;
+    }
 
-            {% if previous_id %}
-            window.location.href =
-                "{% url 'interface' previous_id %}";
-            {% endif %}
 
-            return;
+    // Ctrl + Left Arrow: Previous candle
+
+    if (event.ctrlKey && event.code === "ArrowLeft") {
+
+        event.preventDefault();
+
+        {% if previous_id %}
+        window.location.href = "{% url 'interface' previous_id %}";
+        {% endif %}
+
+        return;
+    }
+
+
+    // Ctrl + Right Arrow: Save and proceed
+
+    if (event.ctrlKey && event.code === "ArrowRight") {
+
+        event.preventDefault();
+
+        const form = document.querySelector("form");
+
+        if (form) {
+            form.action = "{% url 'savecandle' %}";
+            form.submit();
         }
 
-        // Ctrl + Right Arrow:
-        // Save the form and proceed to the next candle.
-        if (event.ctrlKey && event.code === "ArrowRight") {
-            event.preventDefault();
+    }
 
-            const form = document.querySelector("form");
+});
 
-            if (form) {
-                form.action = "{% url 'savecandle' %}";
-                form.submit();
-            }
-        }
-
-    });
 </script>

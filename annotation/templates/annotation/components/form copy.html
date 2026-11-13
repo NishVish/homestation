@@ -1,0 +1,142 @@
+{% csrf_token %}
+
+<!-- ANNOTATION FORM TABLE -->
+
+<table>
+    <thead>
+        <tr>
+            <th class="candle-id">Candle ID</th>
+
+            {% for field in annotation_fields %}
+            <th>{{ field.label }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+
+    <tbody>
+        <!-- PREVIOUS CANDLE -->
+        <tr>
+            <td>
+                <input type="text" name="previous_id" value="{{ previous_id|default_if_none:'' }}" readonly>
+            </td>
+
+            {% for field in annotation_fields %}
+            <td>
+                <input type="text" name="previous_{{ field.name }}"
+                    value="{{ field.previous_value|default_if_none:'' }}">
+            </td>
+            {% endfor %}
+        </tr>
+
+        <!-- CURRENT CANDLE -->
+        <tr>
+            <td>
+                <input type="text" name="current_id" value="{{ current_id|default_if_none:'' }}" readonly>
+            </td>
+
+            {% for field in annotation_fields %}
+            <td>
+                <input type="text" name="current_{{ field.name }}" value="{{ field.current_value|default_if_none:'' }}">
+            </td>
+            {% endfor %}
+        </tr>
+
+        <!-- NEXT CANDLE -->
+        <tr>
+            <td>
+                <input type="text" name="next_id" value="{{ next_id|default_if_none:'' }}" readonly>
+            </td>
+
+            {% for field in annotation_fields %}
+            <td>
+                <input type="text" name="next_{{ field.name }}" value="{{ field.next_value|default_if_none:'' }}">
+            </td>
+            {% endfor %}
+        </tr>
+    </tbody>
+</table>
+
+
+<!-- NAVIGATION BUTTONS -->
+
+<div style="display: flex; gap: 10px; margin-top: 20px;">
+
+    {% if previous_id %}
+    <button type="button" onclick="window.location.href='{% url 'interface' previous_id %}'">
+        Previous Candle
+    </button>
+    {% endif %}
+
+    {% if next_id %}
+    <button type="button" onclick="window.location.href='{% url 'interface' next_id %}'">
+        Next Candle
+    </button>
+    {% endif %}
+
+</div>
+
+
+<!-- SAVE BUTTON -->
+
+<button type="submit" style="margin-top: 10px;">
+    Save Annotation
+</button>
+
+
+<!-- KEYBOARD SHORTCUTS -->
+
+<script>
+    document.addEventListener("keydown", function (event) {
+
+        // Ctrl + Space OR Left Shift + Space:
+        // Focus the Current Bias input.
+        if (
+            (event.ctrlKey && event.code === "Space") ||
+            (
+                event.shiftKey &&
+                event.code === "Space" &&
+                event.location === KeyboardEvent.DOM_KEY_LOCATION_LEFT
+            )
+        ) {
+            event.preventDefault();
+
+            const input = document.querySelector(
+                'input[name="current_bias"]'
+            );
+
+            if (input) {
+                input.focus();
+                input.select();
+            }
+
+            return;
+        }
+
+        // Ctrl + Left Arrow:
+        // Navigate to the previous candle without saving.
+        if (event.ctrlKey && event.code === "ArrowLeft") {
+            event.preventDefault();
+
+            {% if previous_id %}
+            window.location.href =
+                "{% url 'interface' previous_id %}";
+            {% endif %}
+
+            return;
+        }
+
+        // Ctrl + Right Arrow:
+        // Save the form and proceed to the next candle.
+        if (event.ctrlKey && event.code === "ArrowRight") {
+            event.preventDefault();
+
+            const form = document.querySelector("form");
+
+            if (form) {
+                form.action = "{% url 'savecandle' %}";
+                form.submit();
+            }
+        }
+
+    });
+</script>

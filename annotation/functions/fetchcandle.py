@@ -1,38 +1,56 @@
 
-import mysql.connector
-from mysql.connector import Error
 from django.http import JsonResponse
 
+from mysql.connector import Error
 
-def get_by_id_with_neighbors(request, id, timeframe="1m"):
+from .sqlconnection import get_connection, close_connection
+
+
+# Detect timeframes without querying database metadata.
+TIMEFRAME_PREFIXES = (
+    "M1",
+    "M5",
+    "M15",
+    "M30",
+    "H1",
+    "H4",
+    "H8",
+    "H12",
+    "D1",
+    "W1",
+    "MN1",
+)
+
+
+def serialize_row(row):
+
+    if row is None:
+        return None
+
+    return {
+        key: (
+            value.isoformat()
+            if hasattr(value, "isoformat")
+            else value
+        )
+        for key, value in row.items()
+    }
+
+
+def get_by_id_with_neighbors(request, id, timeframe=None):
 
     connection = None
     cursor = None
 
-    timeframe_prefix = {
-        "15m": "M15",
-        "5m": "M5",
-        "1m": "M1"
-    }
-
-    if timeframe not in timeframe_prefix:
-        return JsonResponse({
-            "status": "error",
-            "message": f"Unsupported timeframe: {timeframe}"
-        }, status=400)
-
-    prefix = timeframe_prefix[timeframe]
-
     try:
 
-        connection = mysql.connector.connect(
-            host="localhost",
-            user="root",
-            password="",
-            database="marketdata"
-        )
+        # -----------------------------------------
+        # 1. DATABASE CONNECTION
+        # -----------------------------------------
 
-        if not connection.is_connected():
+        connection = get_connection()
+
+        if connection is None:
             return JsonResponse({
                 "status": "error",
                 "message": "Database connection failed."
@@ -40,51 +58,16 @@ def get_by_id_with_neighbors(request, id, timeframe="1m"):
 
         cursor = connection.cursor(dictionary=True)
 
-        # ------------------------------------------
-        # 1. GET ALL COLUMN NAMES
-        # ------------------------------------------
-
-        cursor.execute("""
-            SHOW COLUMNS FROM labeled_flatdata
-        """)
-
-        all_columns = [
-            row["Field"]
-            for row in cursor.fetchall()
-        ]
-
-        # ------------------------------------------
-        # 2. FILTER COLUMNS BY TIMEFRAME
-        # ------------------------------------------
-
-        selected_columns = [
-            col for col in all_columns
-            if not (
-                col.startswith("M1_")
-                or col.startswith("M5_")
-                or col.startswith("M15_")
-            )
-            or col.startswith(prefix + "_")
-        ]
-
-        # Always include ID
-        if "id" not in selected_columns:
-            selected_columns.insert(0, "id")
-
-        # Escape column identifiers
-        columns_sql = ", ".join(
-            f"`{col}`" for col in selected_columns
-        )
-
-        # ------------------------------------------
-        # 3. CURRENT ROW
-        # ------------------------------------------
+        # -----------------------------------------
+        # 2. FETCH CURRENT ROW
+        # -----------------------------------------
 
         cursor.execute(
-            f"""
-            SELECT {columns_sql}
+            """
+            SELECT *
             FROM labeled_flatdata
             WHERE id = %s
+            LIMIT 1
             """,
             (id,)
         )
@@ -92,18 +75,19 @@ def get_by_id_with_neighbors(request, id, timeframe="1m"):
         current_row = cursor.fetchone()
 
         if current_row is None:
+
             return JsonResponse({
                 "status": "error",
                 "message": f"Record with id {id} not found."
             }, status=404)
 
-        # ------------------------------------------
-        # 4. PREVIOUS ROW
-        # ------------------------------------------
+        # -----------------------------------------
+        # 3. FETCH PREVIOUS ROW
+        # -----------------------------------------
 
         cursor.execute(
-            f"""
-            SELECT {columns_sql}
+            """
+            SELECT *
             FROM labeled_flatdata
             WHERE id < %s
             ORDER BY id DESC
@@ -114,13 +98,13 @@ def get_by_id_with_neighbors(request, id, timeframe="1m"):
 
         previous_row = cursor.fetchone()
 
-        # ------------------------------------------
-        # 5. NEXT ROW
-        # ------------------------------------------
+        # -----------------------------------------
+        # 4. FETCH NEXT ROW
+        # -----------------------------------------
 
         cursor.execute(
-            f"""
-            SELECT {columns_sql}
+            """
+            SELECT *
             FROM labeled_flatdata
             WHERE id > %s
             ORDER BY id ASC
@@ -131,19 +115,45 @@ def get_by_id_with_neighbors(request, id, timeframe="1m"):
 
         next_row = cursor.fetchone()
 
-        # ------------------------------------------
-        # 6. RESPONSE
-        # ------------------------------------------
+        # -----------------------------------------
+        # 5. DETECT TIMEFRAMES FROM CURRENT ROW
+        # -----------------------------------------
+
+        available_timeframes = [
+            prefix
+            for prefix in TIMEFRAME_PREFIXES
+            if any(
+                column.startswith(prefix + "_")
+                for column in current_row
+            )
+        ]
+
+        # -----------------------------------------
+        # 6. RETURN RESPONSE
+        # -----------------------------------------
 
         return JsonResponse({
+
             "status": "success",
-            "timeframe": timeframe,
-            "previous": previous_row,
-            "current": current_row,
-            "next": next_row
-        }, json_dumps_params={"default": str})
+
+            "available_timeframes": available_timeframes,
+
+            "previous": serialize_row(previous_row),
+
+            "current": serialize_row(current_row),
+
+            "next": serialize_row(next_row),
+
+        })
 
     except Error as e:
+
+        return JsonResponse({
+            "status": "error",
+            "message": str(e)
+        }, status=500)
+
+    except Exception as e:
 
         return JsonResponse({
             "status": "error",
@@ -155,5 +165,5 @@ def get_by_id_with_neighbors(request, id, timeframe="1m"):
         if cursor:
             cursor.close()
 
-        if connection and connection.is_connected():
-            connection.close()
+        if connection:
+            close_connection(connection)

@@ -15,6 +15,7 @@ def get_connection():
 
 
 def savecandle(request):
+
     if request.method != "POST":
         return redirect("annotate", candleid=1)
 
@@ -25,7 +26,6 @@ def savecandle(request):
         db = get_connection()
         cursor = db.cursor()
 
-        # 1. Identify editable columns dynamically from extra_columns.
         excluded_fields = {
             "id",
             "edited",
@@ -39,122 +39,94 @@ def savecandle(request):
             and not column.startswith("key_zone_")
         ]
 
-        # 2. Save previous, current, and next annotations.
+        key_zone_columns = [
+            column
+            for column in extra_columns
+            if column.startswith("key_zone_")
+        ]
+
+        # Build updates for previous, current and next.
         rows = ["previous", "current", "next"]
 
         for row in rows:
+
             candle_id = request.POST.get(f"{row}_id")
 
             if not candle_id or candle_id == "None":
                 continue
 
-            try:
-                candle_id = int(candle_id)
-            except (TypeError, ValueError):
-                continue
+            candle_id = int(candle_id)
 
-            fields = []
-            values = []
+            updates = {}
+            columns = (
+                editable_columns
+                + (key_zone_columns if row == "current" else [])
+            )
 
-            for column in editable_columns:
-                # Expected form names:
-                # previous_analysis, current_bias, next_setup, etc.
-                form_field = f"{row}_{column}"
+            for column in columns:
 
-                # Skip fields that were not submitted.
+                form_field = (
+                    column if column.startswith("key_zone_")
+                    else f"{row}_{column}"
+                )
+
                 if form_field not in request.POST:
                     continue
 
                 value = request.POST.get(form_field)
 
-                fields.append(f"`{column}` = %s")
-                values.append(value if value != "" else None)
-
-            if fields:
-                query = f"""
-                    UPDATE `labeled_flatdata`
-                    SET
-                        {", ".join(fields)},
-                        `edited` = TRUE,
-                        `edittime` = NOW()
-                    WHERE `id` = %s
-                """
-
-                values.append(candle_id)
-                cursor.execute(query, tuple(values))
-
-        # 3. Save key zones to the current candle.
-        current_id = request.POST.get("current_id")
-
-        if current_id and current_id != "None":
-            current_id = int(current_id)
-
-            key_zone_columns = [
-                column
-                for column in extra_columns
-                if column.startswith("key_zone_")
-            ]
-
-            fields = []
-            values = []
-
-            for column in key_zone_columns:
-                # Expected form names:
-                # key_zone_high_1, key_zone_low_1, etc.
-                if column not in request.POST:
-                    continue
-
-                value = request.POST.get(column)
-
-                if value in (None, ""):
+                if value == "":
                     value = None
-                else:
+
+                if column.startswith("key_zone_") and value is not None:
                     try:
                         value = float(value)
                     except (TypeError, ValueError):
                         value = None
 
-                fields.append(f"`{column}` = %s")
-                values.append(value)
+                updates[column] = value
 
-            if fields:
-                query = f"""
-                    UPDATE `labeled_flatdata`
-                    SET
-                        {", ".join(fields)},
-                        `edited` = TRUE,
-                        `edittime` = NOW()
-                    WHERE `id` = %s
-                """
+            if not updates:
+                continue
 
-                values.append(current_id)
-                cursor.execute(query, tuple(values))
+            assignments = [
+                f"`{column}` = %s"
+                for column in updates
+            ]
 
-        # 4. Commit all updates together.
+            query = f"""
+                UPDATE `labeled_flatdata`
+                SET
+                    {", ".join(assignments)},
+                    `edited` = TRUE,
+                    `edittime` = NOW()
+                WHERE `id` = %s
+                LIMIT 1
+            """
+
+            values = list(updates.values())
+            values.append(candle_id)
+
+            cursor.execute(query, tuple(values))
+
         db.commit()
 
-    except mysql.connector.Error as e:
+    except Exception as e:
+
         if db and db.is_connected():
             db.rollback()
 
         print("Database error:", e)
         raise
 
-    except (TypeError, ValueError) as e:
-        if db and db.is_connected():
-            db.rollback()
-
-        print("Invalid form data:", e)
-        raise
-
     finally:
+
         if cursor:
             cursor.close()
 
         if db and db.is_connected():
             db.close()
 
-    # 5. Redirect to the next candle.
     current_id = request.POST.get("current_id")
 
     if current_id and current_id != "None":

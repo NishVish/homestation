@@ -1,40 +1,48 @@
 
 import os
 import math
+import time
+import uuid
 import pandas as pd
 
 from django.http import JsonResponse
 from .sqlconnection import get_connection, close_connection
 
 
-# Additional columns required in the migrated table.
-# Defined outside the function so it can be reused in this module.
-extra_columns = {
-    "high_direction": "VARCHAR(100) NULL",
-    "high_bias": "VARCHAR(100) NULL",
-    "high_phase": "VARCHAR(100) NULL",
-    "high_volatility": "VARCHAR(50) NULL",
-    "high_momentum_direction": "VARCHAR(100) NULL",
-    "high_momentum_strength": "VARCHAR(100) NULL",
-    "high_setup": "VARCHAR(100) NULL",
-    "high_entry_candle": "VARCHAR(100) NULL",
-    "high_decision": "VARCHAR(100) NULL",
+# Configuration
+TABLE_NAME = "labeled_flatdata"
+CHUNK_SIZE = 250
 
-    "low_direction": "VARCHAR(100) NULL",
-    "low_bias": "VARCHAR(100) NULL",
-    "low_phase": "VARCHAR(100) NULL",
-    "low_volatility": "VARCHAR(50) NULL",
-    "low_momentum_direction": "VARCHAR(100) NULL",
-    "low_momentum_strength": "VARCHAR(100) NULL",
-    "low_setup": "VARCHAR(100) NULL",
-    "low_entry_candle": "VARCHAR(100) NULL",
-    "low_decision": "VARCHAR(100) NULL",
-
+EXTRA_COLUMNS = {
+    "decision": "VARCHAR(100) NULL",
     "edited": "TINYINT(1) NOT NULL DEFAULT 0",
     "edittime": "DATETIME NULL",
 }
+extra_columns = EXTRA_COLUMNS
+
+
+def normalize_columns(columns):
+    return [
+        str(col).strip().replace(" ", "_")
+        for col in columns
+    ]
+
+
+def convert_value(value):
+    if pd.isna(value):
+        return None
+
+    if hasattr(value, "item"):
+        value = value.item()
+
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+
+    return value
+
 
 def migrate_data(request):
+
     file_path = (
         r"C:\Users\nishw\AppData\Roaming\MetaQuotes\Tester"
         r"\D0E8209F77C8CF37AD8BF550E51FF075"
@@ -43,75 +51,78 @@ def migrate_data(request):
 
     connection = None
     cursor = None
-    table_name = "labeled_flatdata"
-    quoted_table = f"`{table_name}`"
+
+    # Unique staging and backup names prevent collisions.
+    unique_id = uuid.uuid4().hex[:12]
+
+    staging_table = f"{TABLE_NAME}_staging_{unique_id}"
+    backup_table = f"{TABLE_NAME}_backup_{unique_id}"
+
+    quoted_table = f"`{TABLE_NAME}`"
+    quoted_staging = f"`{staging_table}`"
+    quoted_backup = f"`{backup_table}`"
+
+    start_time = time.perf_counter()
+
+    inserted_rows = 0
+    table_swapped = False
 
     try:
-        # 1. Check whether the CSV file exists.
+
+        # 1. Validate file.
         if not os.path.isfile(file_path):
             return JsonResponse({
                 "success": False,
-                "error": f"CSV file not found: {file_path}",
+                "error": "CSV file not found."
             }, status=404)
 
-        # 2. Read the CSV.
-        df = pd.read_csv(file_path)
+        initial_stat = os.stat(file_path)
 
-        if df.empty:
+        file_size_mb = initial_stat.st_size / (1024 * 1024)
+
+        print(f"Starting migration: {file_size_mb:.2f} MB")
+
+        # 2. Read only a small sample to infer SQL column types.
+        sample = pd.read_csv(
+            file_path,
+            nrows=2000,
+            low_memory=False
+        )
+
+        if sample.empty:
             return JsonResponse({
                 "success": False,
-                "message": "CSV file contains no data rows.",
-                "filename": os.path.basename(file_path),
+                "error": "CSV contains no data rows."
             }, status=400)
 
-        # 3. Normalize CSV column names.
-        df.columns = [
-            str(col).strip().replace(" ", "_")
-            for col in df.columns
-        ]
+        columns = normalize_columns(sample.columns)
 
-        if any(not col for col in df.columns):
-            return JsonResponse({
-                "success": False,
-                "error": "CSV contains an empty column name.",
-            }, status=400)
+        if any(not col for col in columns):
+            raise ValueError("CSV contains an empty column name.")
 
-        if len(set(df.columns)) != len(df.columns):
-            return JsonResponse({
-                "success": False,
-                "error": (
-                    "CSV contains duplicate column names "
-                    "after normalization."
-                ),
-            }, status=400)
+        if len(set(columns)) != len(columns):
+            raise ValueError(
+                "Duplicate columns found after normalization."
+            )
 
-        # Extra columns already present in the CSV are not
-        # added a second time.
-        duplicate_extra = set(df.columns) & set(extra_columns)
+        sample.columns = columns
 
-        # 4. Connect to MySQL/MariaDB.
-        connection = get_connection()
-
-        if connection is None:
-            return JsonResponse({
-                "success": False,
-                "error": "Could not connect to MySQL database.",
-            }, status=500)
-
-        cursor = connection.cursor()
-
-        # 5. Infer SQL types for CSV columns.
+        # 3. Build SQL schema.
         column_definitions = []
 
-        for col in df.columns:
-            dtype = df[col].dtype
+        for col in columns:
+
+            dtype = sample[col].dtype
 
             if pd.api.types.is_bool_dtype(dtype):
                 sql_type = "TINYINT(1)"
+
             elif pd.api.types.is_integer_dtype(dtype):
                 sql_type = "BIGINT"
+
             elif pd.api.types.is_float_dtype(dtype):
                 sql_type = "DOUBLE"
+
             else:
                 sql_type = "LONGTEXT"
 
@@ -121,100 +132,173 @@ def migrate_data(request):
                 f"{safe_col} {sql_type} NULL"
             )
 
-        # 6. Add extra columns missing from the CSV.
-        for col, sql_type in extra_columns.items():
-            if col not in df.columns:
-                safe_col = f"`{col.replace('`', '``')}`"
+        # Add missing extra columns.
+        for col, sql_type in EXTRA_COLUMNS.items():
+
+            if col not in columns:
+
                 column_definitions.append(
-                    f"{safe_col} {sql_type}"
+                    f"`{col}` {sql_type}"
                 )
 
-        # 7. Drop the existing table.
-        # WARNING: This permanently deletes the old table and its data.
+        # 4. Connect to database.
+        connection = get_connection()
+
+        if connection is None:
+            raise RuntimeError(
+                "Could not connect to MySQL database."
+            )
+
+        cursor = connection.cursor()
+
+        # 5. Create staging table.
         cursor.execute(
-            f"DROP TABLE IF EXISTS {quoted_table}"
+            f"""
+            CREATE TABLE {quoted_staging} (
+                {", ".join(column_definitions)}
+            ) ENGINE=InnoDB
+              DEFAULT CHARSET=utf8mb4
+              ROW_FORMAT=DYNAMIC
+            """
         )
 
-        # 8. Create the new table.
-        cursor.execute(
-            f"CREATE TABLE {quoted_table} ("
-            + ", ".join(column_definitions)
-            + ") ENGINE=InnoDB"
-        )
+        connection.commit()
 
-        # 9. Prepare the CSV insert statement.
+        # 6. Prepare insert query.
         csv_columns_sql = ", ".join(
             f"`{col.replace('`', '``')}`"
-            for col in df.columns
+            for col in columns
         )
 
         placeholders = ", ".join(
-            ["%s"] * len(df.columns)
+            ["%s"] * len(columns)
         )
 
         insert_sql = (
-            f"INSERT INTO {quoted_table} "
+            f"INSERT INTO {quoted_staging} "
             f"({csv_columns_sql}) "
             f"VALUES ({placeholders})"
         )
 
-        # Convert Pandas values to database-compatible values.
-        def convert_value(value):
-            if pd.isna(value):
-                return None
-
-            if hasattr(value, "item"):
-                value = value.item()
-
-            if isinstance(value, float) and not math.isfinite(value):
-                return None
-
-            return value
-
-        # 10. Insert rows in batches.
-        batch_size = 1000
-        inserted_rows = 0
-
-        for start in range(0, len(df), batch_size):
-            batch = df.iloc[start:start + batch_size]
+        # 7. Read CSV in chunks and insert.
+        for chunk_number, chunk in enumerate(
+            pd.read_csv(
+                file_path,
+                chunksize=CHUNK_SIZE,
+                header=0,
+                names=columns,
+                low_memory=False
+            ),
+            start=1
+        ):
 
             rows = [
-                tuple(convert_value(value) for value in row)
-                for row in batch.itertuples(
+                tuple(
+                    convert_value(value)
+                    for value in row
+                )
+                for row in chunk.itertuples(
                     index=False,
                     name=None
                 )
             ]
 
-            cursor.executemany(insert_sql, rows)
-            inserted_rows += len(rows)
+            if rows:
+                cursor.executemany(insert_sql, rows)
 
-        # 11. Initialize edit tracking fields.
-        # These columns are guaranteed to exist because they are
-        # defined in extra_columns unless already supplied by the CSV.
-        if "edited" in df.columns:
-            cursor.execute(
-                f"UPDATE {quoted_table} SET `edited` = 0"
+                # Commit each chunk.
+                # A failed import will not affect the original table.
+                connection.commit()
+
+                inserted_rows += len(rows)
+
+            elapsed = time.perf_counter() - start_time
+
+            print(
+                f"Chunk: {chunk_number} | "
+                f"Inserted: {inserted_rows:,} | "
+                f"Elapsed: {elapsed:.1f}s"
             )
+
+        # 8. Confirm CSV has not changed during import.
+        final_stat = os.stat(file_path)
+
+        if (
+            initial_stat.st_size != final_stat.st_size
+            or initial_stat.st_mtime_ns != final_stat.st_mtime_ns
+        ):
+            raise RuntimeError(
+                "CSV file changed during migration. "
+                "Import cancelled."
+            )
+
+        # 9. Validate staging table.
+        cursor.execute(
+            f"SELECT COUNT(*) FROM {quoted_staging}"
+        )
+
+        database_rows = cursor.fetchone()[0]
+
+        if database_rows != inserted_rows:
+            raise RuntimeError(
+                f"Row mismatch: inserted {inserted_rows}, "
+                f"database contains {database_rows}."
+            )
+
+        if inserted_rows == 0:
+            raise RuntimeError("No rows were imported.")
+
+        # 10. Check whether original table exists.
+        cursor.execute(
+            """
+            SELECT COUNT(*)
+            FROM information_schema.tables
+            WHERE table_schema = DATABASE()
+              AND table_name = %s
+            """,
+            (TABLE_NAME,)
+        )
+
+        original_exists = cursor.fetchone()[0] > 0
+
+        # 11. Atomically replace original table.
+        if original_exists:
+
+            cursor.execute(
+                f"""
+                RENAME TABLE
+                    {quoted_table} TO {quoted_backup},
+                    {quoted_staging} TO {quoted_table}
+                """
+            )
+
         else:
+
             cursor.execute(
-                f"UPDATE {quoted_table} SET `edited` = 0"
+                f"""
+                RENAME TABLE
+                    {quoted_staging} TO {quoted_table}
+                """
             )
 
-        if "edittime" not in df.columns:
+        table_swapped = True
+
+        # 12. Remove old backup only after successful replacement.
+        if original_exists:
+
             cursor.execute(
-                f"UPDATE {quoted_table} SET `edittime` = NULL"
+                f"DROP TABLE {quoted_backup}"
             )
 
-        # 12. Commit changes.
         connection.commit()
 
-        # 13. Fetch a preview of the migrated data.
+        # 13. Fetch a small preview.
         cursor.execute(
-            f"SELECT * FROM {quoted_table} LIMIT 10"
+            f"SELECT * FROM {quoted_table} LIMIT 3"
         )
 
         result_rows = cursor.fetchall()
+
         result_columns = [
             item[0] for item in cursor.description
         ]
@@ -222,47 +306,76 @@ def migrate_data(request):
         preview = []
 
         for row in result_rows:
+
             row_dict = dict(zip(result_columns, row))
 
+            # Prevent huge text fields from bloating the response.
             for key, value in row_dict.items():
+
                 if hasattr(value, "isoformat"):
                     row_dict[key] = value.isoformat()
 
+                elif isinstance(value, str) and len(value) > 500:
+                    row_dict[key] = value[:500] + "... [truncated]"
+
             preview.append(row_dict)
 
-        # 14. Return the response.
+        elapsed = time.perf_counter() - start_time
+
+        print(
+            f"Migration completed: {inserted_rows:,} rows "
+            f"in {elapsed:.2f} seconds."
+        )
+
         return JsonResponse({
             "success": True,
-            "message": (
-                "Old table dropped, new table created, "
-                "and CSV data imported successfully."
-            ),
+            "message": "CSV migration completed successfully.",
             "filename": os.path.basename(file_path),
+            "file_size_mb": round(file_size_mb, 2),
             "database": "marketdata",
-            "table": table_name,
-            "total_csv_rows": len(df),
-            "inserted_rows": inserted_rows,
-            "columns": df.columns.tolist(),
-            "additional_columns": [
-                col for col in extra_columns
-                if col not in df.columns
-            ],
-            "preview": preview,
+            "table": TABLE_NAME,
+            "total_rows": inserted_rows,
+            "verified_database_rows": database_rows,
+            "chunk_size": CHUNK_SIZE,
+            "elapsed_seconds": round(elapsed, 2),
+            "rows_per_second": round(
+                inserted_rows / elapsed, 2
+            ) if elapsed > 0 else 0,
+            "columns": columns,
+            "preview": preview
         }, json_dumps_params={"default": str})
 
     except Exception as e:
+
         if connection:
             try:
                 connection.rollback()
             except Exception:
                 pass
 
+        # Remove incomplete staging table.
+        # The original table remains untouched unless the swap
+        # has already completed.
+        if cursor and not table_swapped:
+            try:
+                cursor.execute(
+                    f"DROP TABLE IF EXISTS {quoted_staging}"
+                )
+                connection.commit()
+            except Exception:
+                pass
+
         return JsonResponse({
             "success": False,
             "error": str(e),
+            "inserted_before_failure": inserted_rows,
+            "elapsed_seconds": round(
+                time.perf_counter() - start_time, 2
+            )
         }, status=500)
 
     finally:
+
         if cursor:
             try:
                 cursor.close()
@@ -271,3 +384,4 @@ def migrate_data(request):
 
         if connection:
             close_connection(connection)
+
