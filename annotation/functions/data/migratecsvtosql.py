@@ -262,6 +262,7 @@ def migrate_data(request):
         original_exists = cursor.fetchone()[0] > 0
 
         # 11. Atomically replace original table.
+
         if original_exists:
 
             cursor.execute(
@@ -282,6 +283,15 @@ def migrate_data(request):
             )
 
         table_swapped = True
+
+        # 12. Configure id as AUTO_INCREMENT PRIMARY KEY.
+        cursor.execute("""
+            ALTER TABLE labeled_flatdata
+            MODIFY COLUMN id BIGINT NOT NULL AUTO_INCREMENT,
+            ADD PRIMARY KEY (id)
+        """)
+
+        connection.commit()
 
         # 12. Remove old backup only after successful replacement.
         if original_exists:

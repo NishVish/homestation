@@ -1,53 +1,33 @@
 
 from django.http import JsonResponse
-
 from mysql.connector import Error
+from django.shortcuts import redirect
 
 from .sqlconnection import get_connection, close_connection
 
 
-# Detect timeframes without querying database metadata.
 TIMEFRAME_PREFIXES = (
-    "M1",
-    "M5",
-    "M15",
-    "M30",
-    "H1",
-    "H4",
-    "H8",
-    "H12",
-    "D1",
-    "W1",
-    "MN1",
+    "M1", "M5", "M15", "M30",
+    "H1", "H4", "H8", "H12",
+    "D1", "W1", "MN1",
 )
 
 
 def serialize_row(row):
-
     if row is None:
         return None
 
     return {
-        key: (
-            value.isoformat()
-            if hasattr(value, "isoformat")
-            else value
-        )
+        key: value.isoformat() if hasattr(value, "isoformat") else value
         for key, value in row.items()
     }
 
 
-def get_by_id_with_neighbors(request, id, timeframe=None):
-
+def fetch_candle_by_date(request, date_str, time_str):
     connection = None
     cursor = None
 
     try:
-
-        # -----------------------------------------
-        # 1. DATABASE CONNECTION
-        # -----------------------------------------
-
         connection = get_connection()
 
         if connection is None:
@@ -58,9 +38,66 @@ def get_by_id_with_neighbors(request, id, timeframe=None):
 
         cursor = connection.cursor(dictionary=True)
 
-        # -----------------------------------------
-        # 2. FETCH CURRENT ROW
-        # -----------------------------------------
+        # Match using H4_01_time, NOT snapshot_time.
+        # Stored format: YYYY.MM.DD HH:MM
+
+        cursor.execute(
+            """
+            SELECT id
+            FROM labeled_flatdata
+            WHERE STR_TO_DATE(H4_01_time, '%Y.%m.%d %H:%i') = %s
+            ORDER BY id ASC
+            LIMIT 1
+            """,
+            (f"{date_str} {time_str}",)
+        )
+
+        candle_row = cursor.fetchone()
+
+        if candle_row is None:
+            return JsonResponse({
+                "status": "error",
+                "message": f"No H4 candle found for {date_str} {time_str}."
+            }, status=404)
+
+        found_id = candle_row["id"]
+
+    except Error as e:
+        return JsonResponse({
+            "status": "error",
+            "message": str(e)
+        }, status=500)
+
+    except Exception as e:
+        return JsonResponse({
+            "status": "error",
+            "message": str(e)
+        }, status=500)
+
+    finally:
+        if cursor:
+            cursor.close()
+
+        if connection:
+            close_connection(connection)
+
+
+    return redirect(f"/annotation/interface/{found_id}/")
+
+def get_by_id_with_neighbors(request, id, timeframe=None):
+    connection = None
+    cursor = None
+
+    try:
+        connection = get_connection()
+
+        if connection is None:
+            return JsonResponse({
+                "status": "error",
+                "message": "Database connection failed."
+            }, status=500)
+
+        cursor = connection.cursor(dictionary=True)
 
         cursor.execute(
             """
@@ -75,15 +112,10 @@ def get_by_id_with_neighbors(request, id, timeframe=None):
         current_row = cursor.fetchone()
 
         if current_row is None:
-
             return JsonResponse({
                 "status": "error",
                 "message": f"Record with id {id} not found."
             }, status=404)
-
-        # -----------------------------------------
-        # 3. FETCH PREVIOUS ROW
-        # -----------------------------------------
 
         cursor.execute(
             """
@@ -98,10 +130,6 @@ def get_by_id_with_neighbors(request, id, timeframe=None):
 
         previous_row = cursor.fetchone()
 
-        # -----------------------------------------
-        # 4. FETCH NEXT ROW
-        # -----------------------------------------
-
         cursor.execute(
             """
             SELECT *
@@ -115,10 +143,6 @@ def get_by_id_with_neighbors(request, id, timeframe=None):
 
         next_row = cursor.fetchone()
 
-        # -----------------------------------------
-        # 5. DETECT TIMEFRAMES FROM CURRENT ROW
-        # -----------------------------------------
-
         available_timeframes = [
             prefix
             for prefix in TIMEFRAME_PREFIXES
@@ -128,40 +152,28 @@ def get_by_id_with_neighbors(request, id, timeframe=None):
             )
         ]
 
-        # -----------------------------------------
-        # 6. RETURN RESPONSE
-        # -----------------------------------------
-
         return JsonResponse({
-
             "status": "success",
-
+            "id": current_row["id"],
             "available_timeframes": available_timeframes,
-
             "previous": serialize_row(previous_row),
-
             "current": serialize_row(current_row),
-
             "next": serialize_row(next_row),
-
         })
 
     except Error as e:
-
         return JsonResponse({
             "status": "error",
             "message": str(e)
         }, status=500)
 
     except Exception as e:
-
         return JsonResponse({
             "status": "error",
             "message": str(e)
         }, status=500)
 
     finally:
-
         if cursor:
             cursor.close()
 

@@ -176,6 +176,7 @@
                 {% endfor %}
             </tbody>
         </table>
+       
         <!-- <div style="font:12px monospace;background:#fff8e1;border:1px solid #f0c36d;padding:8px;margin-bottom:10px;">
     db_status: {{ db_status }}<br>
     available_timeframes: {{ available_timeframes }}<br>
@@ -500,7 +501,8 @@
 
         </script>
 
-    </form>
+    </form>        {% include "annotation/components/sql_section.html" with previous=previous current=current next=next %}
+
 
 </body>
 

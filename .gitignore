@@ -1,0 +1,22 @@
+# Python environments
+.venv/
+venv/
+env/
+**/__pycache__/
+*.pyc
+# Archives
+*.rar
+*.zip
+*.7z
+# ML models
+*.pt
+*.pth
+*.onnx
+*.h5
+# IDE
+.vscode/
+.idea/
+# Logs
+*.log
+# Database
+*.sqlite3

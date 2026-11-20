@@ -338,7 +338,9 @@ def interface(request, candleid):
         indent=4,
         default=str
     ))
-
+    # print(timeframe_data)
+    h4_time = timeframe_data["h4"]["current"][-1]["time"]
+    print(h4_time)
     # ------------------------------------------
     # 11. RENDER TEMPLATE
     # ------------------------------------------
@@ -360,6 +362,7 @@ def interface(request, candleid):
             ],
 
             "timeframe_data": timeframe_data,
+            "timeoflastcandle":h4_time,
 
             # BACKWARD COMPATIBILITY - M1
             "previous": previous_1m,

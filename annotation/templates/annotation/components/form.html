@@ -3,7 +3,7 @@
 <style>
     .annotation-scroll-wrapper {
         width: 100%;
-        height: 65vh;
+        height: auto;
         overflow: auto;
         border: 1px solid #ddd;
         border-radius: 8px;
@@ -197,6 +197,38 @@
 
 </div>
 
+<div>
+    <label for="dateinput">Date:</label>
+    <input
+        type="text"
+        id="dateinput"
+        placeholder="YYYY.MM.DD"
+    >
+
+    <label for="timeinput">Time:</label>
+    <input
+        type="text"
+        id="timeinput"
+        placeholder="HH:MM"
+    >
+
+    <button type="button" onclick="fetchCandle()">Fetch Candle</button>
+</div>
+
+<script>
+function fetchCandle() {
+    const date = document.getElementById("dateinput").value.trim();
+    const time = document.getElementById("timeinput").value.trim();
+
+    if (!date || !time) {
+        alert("Please enter both date and time.");
+        return;
+    }
+
+    window.location.href =
+        `/annotation/fetch_candle_by_date/${encodeURIComponent(date)}/${encodeURIComponent(time)}/`;
+}
+</script>
 
 <!-- SAVE BUTTON -->
 

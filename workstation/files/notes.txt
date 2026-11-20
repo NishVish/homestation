@@ -17,6 +17,7 @@ https://www.youtube.com/watch?v=AdgYT71N9aE
 https://en.yts-official.com/movie/obsession-2026
 
 
+SELECT snapshot_time,decision FROM `labeled_flatdata` WHERE decision is not null;
 
 
 
