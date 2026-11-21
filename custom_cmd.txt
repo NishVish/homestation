@@ -1,0 +1,161 @@
+if (!(Test-Path $PROFILE)) {
+>>     New-Item -Path $PROFILE -ItemType File -Force
+>> }
+
+#to open the file
+#notepad $PROFILE
+
+
+
+#to activate
+#. $PROFILE
+# ==========================================
+# GLOBAL FILE MANAGEMENT COMMANDS
+# ==========================================
+
+# 1. Create an empty file
+function citem {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$FileName
+    )
+
+    if (Test-Path $FileName) {
+        Write-Host "File already exists: $FileName" -ForegroundColor Yellow
+    }
+    else {
+        New-Item -Path $FileName -ItemType File | Out-Null
+        Write-Host "File created: $FileName" -ForegroundColor Green
+    }
+}
+# 2. Create a file and write content (overwrites)
+function scontent {
+    param(
+        [Parameter(Mandatory=$true)][string]$FileName,
+        [Parameter(Mandatory=$true)][string]$Content
+    )
+
+    Set-Content -Path $FileName -Value $Content
+}
+
+# 3. Append content to a file
+function acontent {
+    param(
+        [Parameter(Mandatory=$true)][string]$FileName,
+        [Parameter(Mandatory=$true)][string]$Content
+    )
+
+    Add-Content -Path $FileName -Value $Content
+}
+
+# 4. Edit file using Notepad
+function eitem {
+    param([Parameter(Mandatory=$true)][string]$FileName)
+
+    if (!(Test-Path $FileName -PathType Leaf)) {
+        Write-Host "File not found: $FileName" -ForegroundColor Red
+        return
+    }
+
+    notepad $FileName
+}
+
+# 5. Read file content
+function ritem {
+    param([Parameter(Mandatory=$true)][string]$FileName)
+
+    Get-Content -Path $FileName
+}
+
+# 6. Delete a file
+function ditem {
+    param([Parameter(Mandatory=$true)][string]$FileName)
+
+    Remove-Item -Path $FileName -Confirm
+}
+
+# 7. Rename a file
+function nitem {
+    param(
+        [Parameter(Mandatory=$true)][string]$FileName,
+        [Parameter(Mandatory=$true)][string]$NewName
+    )
+
+    Rename-Item -Path $FileName -NewName $NewName
+}
+
+# 8. Move a file
+function mitem {
+    param(
+        [Parameter(Mandatory=$true)][string]$FileName,
+        [Parameter(Mandatory=$true)][string]$Destination
+    )
+
+    Move-Item -Path $FileName -Destination $Destination
+}
+
+# 9. Copy a file
+function cpitem {
+    param(
+        [Parameter(Mandatory=$true)][string]$FileName,
+        [Parameter(Mandatory=$true)][string]$Destination
+    )
+
+    Copy-Item -Path $FileName -Destination $Destination
+}
+
+# 10. List files and folders
+function litem {
+    param([string]$Path = ".")
+
+    Get-ChildItem -Path $Path
+}
+
+# 11. Create a directory
+function cdir {
+    param([Parameter(Mandatory=$true)][string]$DirectoryName)
+
+    New-Item -Path $DirectoryName -ItemType Directory
+}
+
+# 12. Delete a directory (asks for confirmation)
+function ddir {
+    param([Parameter(Mandatory=$true)][string]$DirectoryName)
+
+    Remove-Item -Path $DirectoryName -Recurse -Confirm
+}
+
+# 13. Copy a directory
+function cpdir {
+    param(
+        [Parameter(Mandatory=$true)][string]$DirectoryName,
+        [Parameter(Mandatory=$true)][string]$Destination
+    )
+
+    Copy-Item -Path $DirectoryName -Destination $Destination -Recurse
+}
+
+# 14. Move a directory
+function mdir {
+    param(
+        [Parameter(Mandatory=$true)][string]$DirectoryName,
+        [Parameter(Mandatory=$true)][string]$Destination
+    )
+
+    Move-Item -Path $DirectoryName -Destination $Destination
+}
+
+# 15. Search for a file by name
+function finditem {
+    param(
+        [Parameter(Mandatory=$true)][string]$FileName,
+        [string]$Path = "."
+    )
+
+    Get-ChildItem -Path $Path -Filter $FileName -File -Recurse
+}
+
+# 16. Show current directory
+function pwdx {
+    Get-Location
+}

@@ -20,3 +20,4 @@ env/
 *.log
 # Database
 *.sqlite3
+standalone/semi_supervised/dataset/X_ohlc.npy

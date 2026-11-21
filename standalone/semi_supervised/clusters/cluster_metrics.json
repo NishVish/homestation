@@ -1,0 +1,134 @@
+{
+    "samples": 512485,
+    "features": 320,
+    "clusters": 15,
+    "epochs": 5,
+    "batch_size": 10000,
+    "inertia": 2367201.5,
+    "silhouette_sample": 0.09068566560745239,
+    "cluster_populations": [
+        31111,
+        17623,
+        16393,
+        67973,
+        21667,
+        48194,
+        40484,
+        19377,
+        39285,
+        47221,
+        25335,
+        44765,
+        22520,
+        8848,
+        61689
+    ],
+    "cluster_report": [
+        {
+            "cluster": 0,
+            "count": 31111,
+            "buy": 1,
+            "sell": 31109,
+            "none": 1
+        },
+        {
+            "cluster": 1,
+            "count": 17623,
+            "buy": 0,
+            "sell": 17623,
+            "none": 0
+        },
+        {
+            "cluster": 2,
+            "count": 16393,
+            "buy": 0,
+            "sell": 16393,
+            "none": 0
+        },
+        {
+            "cluster": 3,
+            "count": 67973,
+            "buy": 0,
+            "sell": 67972,
+            "none": 1
+        },
+        {
+            "cluster": 4,
+            "count": 21667,
+            "buy": 0,
+            "sell": 21667,
+            "none": 0
+        },
+        {
+            "cluster": 5,
+            "count": 48194,
+            "buy": 3,
+            "sell": 48191,
+            "none": 0
+        },
+        {
+            "cluster": 6,
+            "count": 40484,
+            "buy": 3,
+            "sell": 40481,
+            "none": 0
+        },
+        {
+            "cluster": 7,
+            "count": 19377,
+            "buy": 0,
+            "sell": 19376,
+            "none": 1
+        },
+        {
+            "cluster": 8,
+            "count": 39285,
+            "buy": 4,
+            "sell": 39279,
+            "none": 2
+        },
+        {
+            "cluster": 9,
+            "count": 47221,
+            "buy": 0,
+            "sell": 47221,
+            "none": 0
+        },
+        {
+            "cluster": 10,
+            "count": 25335,
+            "buy": 1,
+            "sell": 25330,
+            "none": 4
+        },
+        {
+            "cluster": 11,
+            "count": 44765,
+            "buy": 4,
+            "sell": 44761,
+            "none": 0
+        },
+        {
+            "cluster": 12,
+            "count": 22520,
+            "buy": 0,
+            "sell": 22520,
+            "none": 0
+        },
+        {
+            "cluster": 13,
+            "count": 8848,
+            "buy": 0,
+            "sell": 8848,
+            "none": 0
+        },
+        {
+            "cluster": 14,
+            "count": 61689,
+            "buy": 0,
+            "sell": 61689,
+            "none": 0
+        }
+    ],
+    "runtime_seconds": 5.04
+}

@@ -27,15 +27,11 @@ urlpatterns = [
     path("migratecsvtosql/", migrate_data, name="migrate_data"),
 
     path(
-        "candle/id/<int:id>/",
+        "<int:id>/",
         get_by_id_with_neighbors,
         name="get_by_id_with_neighbors",
     ),
-    path(
-        "candle/id/<int:id>/",
-        get_by_id_with_neighbors,
-        name="get_by_id_with_neighbors",
-    ),
+   
     path(
     "fetch_candle_by_date/<str:date_str>/<str:time_str>/",
     fetch_candle_by_date,

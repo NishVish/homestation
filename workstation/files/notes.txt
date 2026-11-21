@@ -1,4 +1,6 @@
 asdasddfsdsdsddsf ffddds sddsd
+
+notepad $PROFILE
 .\venv\Scripts\Activate.ps1
 
 hkey local machine\system\curretnControlset \Control\Print

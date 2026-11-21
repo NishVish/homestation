@@ -1,0 +1,31 @@
+{
+    "total_database_rows": 512485,
+    "valid_rows": 512485,
+    "input_shape": [
+        4,
+        20,
+        4
+    ],
+    "features": 320,
+    "labels": {
+        "buy": 0,
+        "sell": 1,
+        "unlabeled": -1
+    },
+    "status": {
+        "unseen": 0,
+        "reviewed_none": 1,
+        "reviewed_buy": 2,
+        "reviewed_sell": 3
+    },
+    "counts": {
+        "buy": 9,
+        "sell": 16,
+        "reviewed_none": 2166,
+        "unseen": 510294,
+        "invalid_ohlc": 0,
+        "unexpected_decisions": {}
+    },
+    "labeled": 25,
+    "unlabeled": 512460
+}
