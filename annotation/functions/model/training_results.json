@@ -1,0 +1,26 @@
+{
+    "decision": {
+        "accuracy": 0.6545454545454545,
+        "training_rows": 55,
+        "features": 320,
+        "classes": [
+            "buy",
+            "none",
+            "sell"
+        ],
+        "timeframes": {
+            "H4": 20,
+            "H1": 20,
+            "M15": 20,
+            "M5": 20
+        },
+        "ohlc_columns": [
+            "open",
+            "high",
+            "low",
+            "close"
+        ],
+        "target": "decision",
+        "filter": "edited = 1"
+    }
+}

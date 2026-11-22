@@ -148,7 +148,14 @@
 
         <div id="chartTooltip" class="chart-tooltip"></div>
 
-        <!-- PREDICTIONS: one row per timeframe -->
+        <div>
+
+             <div>
+        <strong>Decision:</strong>
+        {{ predicted_decision|default:"N/A" }}
+    </div>
+        </div>
+        <!-- PREDICTIONS: one row per timeframe
         {% if prediction_values %}
         <table>
             <thead>
@@ -175,7 +182,7 @@
                 </tr>
                 {% endfor %}
             </tbody>
-        </table>
+        </table> -->
        
         <!-- <div style="font:12px monospace;background:#fff8e1;border:1px solid #f0c36d;padding:8px;margin-bottom:10px;">
     db_status: {{ db_status }}<br>

@@ -21,3 +21,6 @@ env/
 # Database
 *.sqlite3
 standalone/semi_supervised/dataset/X_ohlc.npy
+standalone/semi_supervised/similarity/all_signal_matches.csv
+standalone/semi_supervised/similarity/buy_matches.csv
+standalone/semi_supervised/similarity/sell_matches.csv

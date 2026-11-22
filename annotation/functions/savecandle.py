@@ -75,7 +75,9 @@ def savecandle(request):
 
                 value = request.POST.get(form_field)
 
-                if value == "":
+                if row == "current" and (value is None or value == ""):
+                    value = "none"
+                elif value == "":
                     value = None
 
                 if column.startswith("key_zone_") and value is not None:

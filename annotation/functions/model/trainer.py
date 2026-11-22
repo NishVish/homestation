@@ -1,6 +1,6 @@
-
 import json
 import os
+
 import mysql.connector
 import numpy as np
 import pandas as pd
@@ -16,7 +16,12 @@ from skl2onnx import convert_sklearn
 from skl2onnx.common.data_types import FloatTensorType
 
 
+# --------------------------------------------------
+# DATABASE CONNECTION
+# --------------------------------------------------
+
 def get_connection():
+
     return mysql.connector.connect(
         host="localhost",
         user="root",
@@ -29,26 +34,46 @@ def get_connection():
 # CONFIGURATION
 # --------------------------------------------------
 
-BASE_TARGETS = [
-    "was",
-    "then",
-    "currently",
-    "future",
-    "volatility",
-    "bias",
-    "phase",
-    "momentum_direction",
-    "momentum_strength",
+TABLE_NAME = "labeled_flatdata"
+
+TARGET = "decision"
+
+TIMEFRAMES = {
+    "H4": 20,
+    "H1": 20,
+    "M15": 20,
+    "M5": 20,
+}
+
+OHLC_COLUMNS = [
+    "open",
+    "high",
+    "low",
+    "close"
 ]
 
-SETUP_TARGET = "setup"
-MOMENTUM_TARGET = "momentum_candle"
-DECISION_TARGET = "decision"
 
-ALL_TARGETS = (
-    BASE_TARGETS
-    + [SETUP_TARGET, MOMENTUM_TARGET, DECISION_TARGET]
-)
+# --------------------------------------------------
+# GENERATE FEATURE COLUMNS
+# --------------------------------------------------
+
+def generate_feature_columns():
+
+    feature_columns = []
+
+    for timeframe, candle_count in TIMEFRAMES.items():
+
+        for candle in range(1, candle_count + 1):
+
+            candle_name = f"{timeframe}_{candle:02d}"
+
+            for ohlc in OHLC_COLUMNS:
+
+                feature_columns.append(
+                    f"{candle_name}_{ohlc}"
+                )
+
+    return feature_columns
 
 
 # --------------------------------------------------
@@ -92,28 +117,32 @@ def clean_labels(series):
 
     return values, valid
 
+
 # --------------------------------------------------
-# TRAIN MODEL AND GENERATE OUT-OF-FOLD PREDICTIONS
+# TRAIN MODEL AND GENERATE OOF PREDICTIONS
 # --------------------------------------------------
 
-def train_with_oof(target, X, y_raw):
+def train_model(target, X, y_raw):
 
     encoder = LabelEncoder()
+
     y = encoder.fit_transform(y_raw)
 
     if len(encoder.classes_) < 2:
+
         raise ValueError(
             f"{target}: requires at least two different classes."
         )
-
-    model = create_model()
 
     class_counts = pd.Series(y).value_counts()
 
     min_class_count = int(class_counts.min())
 
-    # OOF predictions prevent a downstream model from
-    # simply learning perfect upstream training labels.
+    model = create_model()
+
+    # ------------------------------------------
+    # OUT OF FOLD VALIDATION
+    # ------------------------------------------
 
     if min_class_count >= 2:
 
@@ -134,7 +163,10 @@ def train_with_oof(target, X, y_raw):
             n_jobs=1
         )
 
-        accuracy = accuracy_score(y, oof_predictions)
+        accuracy = accuracy_score(
+            y,
+            oof_predictions
+        )
 
         print(
             f"{target}: OOF accuracy = {accuracy:.2%}"
@@ -143,65 +175,56 @@ def train_with_oof(target, X, y_raw):
     else:
 
         print(
-            f"WARNING: {target} has a class with only one "
-            "sample. Using in-sample predictions for OOF fallback."
+            f"WARNING: {target} contains a class "
+            "with only one sample."
+        )
+
+        print(
+            "Using in-sample accuracy as fallback."
         )
 
         model.fit(X, y)
+
         oof_predictions = model.predict(X)
 
-        accuracy = accuracy_score(y, oof_predictions)
+        accuracy = accuracy_score(
+            y,
+            oof_predictions
+        )
 
-    # Train final model using all available labeled rows.
+    # ------------------------------------------
+    # FINAL MODEL TRAINING
+    # ------------------------------------------
 
     model.fit(X, y)
 
     return {
         "model": model,
+
         "encoder": encoder,
+
         "oof_predictions": encoder.inverse_transform(
             oof_predictions.astype(int)
         ),
+
         "accuracy": accuracy,
+
         "classes": list(encoder.classes_),
+
         "training_rows": len(y),
     }
 
 
 # --------------------------------------------------
-# GENERATE ONE-HOT PREDICTION FEATURES
+# EXPORT MODEL TO ONNX
 # --------------------------------------------------
 
-def add_prediction_features(
-    X,
+def export_model(
     target,
-    predictions,
-    classes
+    model_data,
+    feature_columns,
+    script_dir
 ):
-
-    X = X.copy()
-
-    predictions = pd.Series(
-        predictions,
-        index=X.index
-    )
-
-    for class_name in classes:
-
-        column_name = f"pred_{target}__{class_name}"
-
-        X[column_name] = (
-            predictions == class_name
-        ).astype(np.float32)
-
-    return X
-
-
-# --------------------------------------------------
-# EXPORT MODEL
-# --------------------------------------------------
-
-def export_model(target, model_data, feature_columns, script_dir):
 
     model = model_data["model"]
 
@@ -225,15 +248,24 @@ def export_model(target, model_data, feature_columns, script_dir):
         }
     )
 
+    # ------------------------------------------
+    # SAVE ONNX MODEL
+    # ------------------------------------------
+
     model_path = os.path.join(
         script_dir,
         f"model_{target}.onnx"
     )
 
     with open(model_path, "wb") as f:
-        f.write(onnx_model.SerializeToString())
 
-    # Save class mapping.
+        f.write(
+            onnx_model.SerializeToString()
+        )
+
+    # ------------------------------------------
+    # SAVE CLASS MAPPING
+    # ------------------------------------------
 
     classes_path = os.path.join(
         script_dir,
@@ -241,13 +273,16 @@ def export_model(target, model_data, feature_columns, script_dir):
     )
 
     with open(classes_path, "w") as f:
+
         json.dump(
             model_data["classes"],
             f,
             indent=4
         )
 
-    # Save exact input feature order for inference.
+    # ------------------------------------------
+    # SAVE EXACT FEATURE ORDER
+    # ------------------------------------------
 
     feature_path = os.path.join(
         script_dir,
@@ -255,13 +290,21 @@ def export_model(target, model_data, feature_columns, script_dir):
     )
 
     with open(feature_path, "w") as f:
+
         json.dump(
             feature_columns,
             f,
             indent=4
         )
 
-    print(f"Exported: {model_path}")
+    print("\nModel exported:")
+    print(model_path)
+
+    print("\nClasses exported:")
+    print(classes_path)
+
+    print("\nFeatures exported:")
+    print(feature_path)
 
 
 # --------------------------------------------------
@@ -276,6 +319,8 @@ def train_models_and_export_onnx():
         os.path.abspath(__file__)
     )
 
+    db = None
+
     # ------------------------------------------
     # 1. LOAD DATABASE
     # ------------------------------------------
@@ -283,47 +328,82 @@ def train_models_and_export_onnx():
     try:
 
         db = get_connection()
-# make changes here that only take columns with of 1min timeframe....abs
-        query = """
+
+        query = f"""
             SELECT *
-            FROM labeled_flatdata
-            WHERE edited = '1'
+            FROM {TABLE_NAME}
+            WHERE edited = 1
         """
 
         df = pd.read_sql(query, db)
 
-        print("Loaded rows:", len(df))
+        print("Loaded database rows:", len(df))
 
     except Exception as e:
 
         print("Database error:", e)
+
         return None
 
     finally:
 
-        if "db" in locals() and db.is_connected():
+        if db is not None and db.is_connected():
+
             db.close()
 
     if df.empty:
+
         print("No training data found.")
+
         return None
 
     # ------------------------------------------
-    # 2. EXTRACT OHLC FEATURES
+    # 2. GENERATE ALL FEATURE COLUMNS
     # ------------------------------------------
 
-    feature_columns = [
+    feature_columns = generate_feature_columns()
+
+    print("\n========== FEATURE CONFIGURATION ==========\n")
+
+    for timeframe, candle_count in TIMEFRAMES.items():
+
+        print(
+            f"{timeframe}: "
+            f"{candle_count} candles x 4 = "
+            f"{candle_count * 4} features"
+        )
+
+    print(
+        "\nTotal expected features:",
+        len(feature_columns)
+    )
+
+    # ------------------------------------------
+    # 3. VALIDATE DATABASE COLUMNS
+    # ------------------------------------------
+
+    missing_columns = [
         col
-        for col in df.columns
-        if col.startswith("M1_")
-        and not col.endswith("_time")
-        and col.rsplit("_", 1)[-1]
-        in {"open", "high", "low", "close"}
+        for col in feature_columns
+        if col not in df.columns
     ]
 
-    if not feature_columns:
-        print("No OHLC features found.")
-        return None
+    if missing_columns:
+
+        raise ValueError(
+            "Missing feature columns:\n"
+            + "\n".join(missing_columns)
+        )
+
+    if TARGET not in df.columns:
+
+        raise ValueError(
+            f"Missing target column: {TARGET}"
+        )
+
+    # ------------------------------------------
+    # 4. EXTRACT ALL OHLC FEATURES
+    # ------------------------------------------
 
     X_raw = df[feature_columns].copy()
 
@@ -340,242 +420,126 @@ def train_models_and_export_onnx():
     X_raw = X_raw.astype(np.float32)
 
     # ------------------------------------------
-    # 3. SAVE RAW FEATURE ORDER
+    # 5. EXTRACT TARGET
     # ------------------------------------------
 
-    with open(
-        os.path.join(script_dir, "feature_columns.json"),
-        "w"
-    ) as f:
+    y_raw, valid = clean_labels(
+        df[TARGET]
+    )
 
-        json.dump(feature_columns, f, indent=4)
+    X = X_raw.loc[valid].copy()
 
-    models = {}
-    results = {}
+    y = y_raw.loc[valid].copy()
+
+    if len(y) < 2:
+
+        print("Insufficient labeled training records.")
+
+        return None
 
     # ------------------------------------------
-    # 4. TRAIN FIRST 9 MODELS
+    # 6. DATASET SUMMARY
     # ------------------------------------------
 
-    print("\n========== STAGE 1 ==========\n")
+    print("\n========== DATASET SUMMARY ==========\n")
 
-    base_predictions = {}
+    print("Database:", TABLE_NAME)
 
-    for target in BASE_TARGETS:
+    print("SQL filter: edited = 1")
 
-        if target not in df.columns:
-            raise ValueError(
-                f"Missing database column: {target}"
-            )
+    print("Total loaded rows:", len(df))
 
-        y_raw, valid = clean_labels(df[target])
+    print("Valid labeled rows:", len(y))
 
-        X_target = X_raw.loc[valid]
-        y_target = y_raw.loc[valid]
+    print("Total features:", len(feature_columns))
 
-        if len(y_target) < 2:
-            raise ValueError(
-                f"{target}: insufficient training rows."
-            )
+    print("Target:", TARGET)
 
-        print(
-            f"\nTraining base model: {target}"
-        )
+    print("\nTarget distribution:")
 
-        model_data = train_with_oof(
-            target,
-            X_target,
-            y_target
-        )
+    print(y.value_counts())
 
-        models[target] = model_data
+    print("\nMissing OHLC values:")
 
-        # Generate predictions for all rows.
-        # Labeled rows receive OOF predictions.
-        # Rows without labels receive full-model predictions.
+    print(
+        int(X.isna().sum().sum())
+    )
 
-        all_predictions = pd.Series(
-            model_data["encoder"].inverse_transform(
-                model_data["model"].predict(
-                    X_raw
-                ).astype(int)
-            ),
-            index=df.index
-        )
+    # ------------------------------------------
+    # 7. SAVE FEATURE ORDER
+    # ------------------------------------------
 
-        all_predictions.loc[valid] = (
-            model_data["oof_predictions"]
-        )
+    feature_path = os.path.join(
+        script_dir,
+        "feature_columns.json"
+    )
 
-        base_predictions[target] = all_predictions
+    with open(feature_path, "w") as f:
 
-        export_model(
-            target,
-            model_data,
+        json.dump(
             feature_columns,
-            script_dir
+            f,
+            indent=4
         )
 
-        results[target] = {
-            "accuracy": model_data["accuracy"],
-            "training_rows": model_data["training_rows"],
-        }
-
     # ------------------------------------------
-    # 5. BUILD STAGE 2 FEATURES
-    # OHLC + FIRST 9 PREDICTIONS
-    # ------------------------------------------
-
-    print("\n========== STAGE 2: SETUP ==========\n")
-
-    X_setup = X_raw.copy()
-
-    for target in BASE_TARGETS:
-
-        X_setup = add_prediction_features(
-            X_setup,
-            target,
-            base_predictions[target],
-            models[target]["classes"]
-        )
-
-    setup_values, setup_valid = clean_labels(
-        df[SETUP_TARGET]
-    )
-
-    setup_model_data = train_with_oof(
-        SETUP_TARGET,
-        X_setup.loc[setup_valid],
-        setup_values.loc[setup_valid]
-    )
-
-    models[SETUP_TARGET] = setup_model_data
-
-    # OOF setup predictions for training subsequent models.
-
-    setup_predictions = pd.Series(
-        setup_model_data["encoder"].inverse_transform(
-            setup_model_data["model"].predict(
-                X_setup
-            ).astype(int)
-        ),
-        index=df.index
-    )
-
-    setup_predictions.loc[setup_valid] = (
-        setup_model_data["oof_predictions"]
-    )
-
-    export_model(
-        SETUP_TARGET,
-        setup_model_data,
-        list(X_setup.columns),
-        script_dir
-    )
-
-    results[SETUP_TARGET] = {
-        "accuracy": setup_model_data["accuracy"],
-        "training_rows": setup_model_data["training_rows"],
-    }
-
-    # ------------------------------------------
-    # 6. BUILD STAGE 3 FEATURES
-    # OHLC + FIRST 9 + SETUP
+    # 8. TRAIN DECISION MODEL
     # ------------------------------------------
 
     print(
-        "\n========== STAGE 3: MOMENTUM CANDLE ==========\n"
+        "\n========== TRAINING DECISION MODEL ==========\n"
     )
 
-    X_momentum = X_setup.copy()
-
-    X_momentum = add_prediction_features(
-        X_momentum,
-        SETUP_TARGET,
-        setup_predictions,
-        setup_model_data["classes"]
+    model_data = train_model(
+        TARGET,
+        X,
+        y
     )
 
-    momentum_values, momentum_valid = clean_labels(
-        df[MOMENTUM_TARGET]
-    )
+    # ------------------------------------------
+    # 9. EXPORT ONNX
+    # ------------------------------------------
 
-    momentum_model_data = train_with_oof(
-        MOMENTUM_TARGET,
-        X_momentum.loc[momentum_valid],
-        momentum_values.loc[momentum_valid]
-    )
-
-    models[MOMENTUM_TARGET] = momentum_model_data
-
-    momentum_predictions = pd.Series(
-        momentum_model_data["encoder"].inverse_transform(
-            momentum_model_data["model"].predict(
-                X_momentum
-            ).astype(int)
-        ),
-        index=df.index
-    )
-
-    momentum_predictions.loc[momentum_valid] = (
-        momentum_model_data["oof_predictions"]
+    print(
+        "\n========== EXPORTING ONNX ==========\n"
     )
 
     export_model(
-        MOMENTUM_TARGET,
-        momentum_model_data,
-        list(X_momentum.columns),
+        TARGET,
+        model_data,
+        feature_columns,
         script_dir
     )
 
-    results[MOMENTUM_TARGET] = {
-        "accuracy": momentum_model_data["accuracy"],
-        "training_rows": momentum_model_data["training_rows"],
+    # ------------------------------------------
+    # 10. SAVE TRAINING RESULTS
+    # ------------------------------------------
+
+    results = {
+
+        TARGET: {
+
+            "accuracy": float(
+                model_data["accuracy"]
+            ),
+
+            "training_rows": int(
+                model_data["training_rows"]
+            ),
+
+            "features": len(feature_columns),
+
+            "classes": model_data["classes"],
+
+            "timeframes": TIMEFRAMES,
+
+            "ohlc_columns": OHLC_COLUMNS,
+
+            "target": TARGET,
+
+            "filter": "edited = 1"
+        }
     }
-
-    # ------------------------------------------
-    # 7. BUILD STAGE 4 FEATURES
-    # OHLC + FIRST 9 + SETUP + MOMENTUM
-    # ------------------------------------------
-
-    print("\n========== STAGE 4: DECISION ==========\n")
-
-    X_decision = X_momentum.copy()
-
-    X_decision = add_prediction_features(
-        X_decision,
-        MOMENTUM_TARGET,
-        momentum_predictions,
-        momentum_model_data["classes"]
-    )
-
-    decision_values, decision_valid = clean_labels(
-        df[DECISION_TARGET]
-    )
-
-    decision_model_data = train_with_oof(
-        DECISION_TARGET,
-        X_decision.loc[decision_valid],
-        decision_values.loc[decision_valid]
-    )
-
-    models[DECISION_TARGET] = decision_model_data
-
-    export_model(
-        DECISION_TARGET,
-        decision_model_data,
-        list(X_decision.columns),
-        script_dir
-    )
-
-    results[DECISION_TARGET] = {
-        "accuracy": decision_model_data["accuracy"],
-        "training_rows": decision_model_data["training_rows"],
-    }
-
-    # ------------------------------------------
-    # 8. SAVE TRAINING SUMMARY
-    # ------------------------------------------
 
     results_path = os.path.join(
         script_dir,
@@ -590,14 +554,55 @@ def train_models_and_export_onnx():
             indent=4
         )
 
-    print("\n========== TRAINING COMPLETE ==========\n")
+    # ------------------------------------------
+    # 11. TRAINING SUMMARY
+    # ------------------------------------------
 
-    results_df = pd.DataFrame(results).T
+    print(
+        "\n========== TRAINING COMPLETE ==========\n"
+    )
 
-    print(results_df)
+    print("Target:", TARGET)
 
-    return results_df
+    print(
+        "Training rows:",
+        model_data["training_rows"]
+    )
 
+    print(
+        "Input features:",
+        len(feature_columns)
+    )
+
+    print(
+        "Classes:",
+        model_data["classes"]
+    )
+
+    print(
+        "OOF accuracy:",
+        f"{model_data['accuracy']:.2%}"
+    )
+
+    print("\nGenerated files:")
+
+    print(f"1. model_{TARGET}.onnx")
+
+    print(f"2. classes_{TARGET}.json")
+
+    print(f"3. features_{TARGET}.json")
+
+    print("4. feature_columns.json")
+
+    print("5. training_results.json")
+
+    return pd.DataFrame(results).T
+
+
+# --------------------------------------------------
+# EXECUTION
+# --------------------------------------------------
 
 if __name__ == "__main__":
+
     train_models_and_export_onnx()

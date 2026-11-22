@@ -1,11 +1,15 @@
-
 import json
 import os
+
 import mysql.connector
 import numpy as np
 import onnxruntime as ort
 import pandas as pd
 
+
+# --------------------------------------------------
+# DATABASE CONNECTION
+# --------------------------------------------------
 
 def get_connection():
 
@@ -17,52 +21,66 @@ def get_connection():
     )
 
 
-# ==================================================
-# GENERATE ALL FEATURES FOR SELECTED TIMEFRAME
-# ==================================================
+# --------------------------------------------------
+# CONFIGURATION
+# --------------------------------------------------
 
-def generate_feature_columns(timeframe, df):
+TABLE_NAME = "labeled_flatdata"
 
-    timeframe_prefix = {
-        "15m": "M15",
-        "5m": "M5",
-        "1m": "M1"
-    }
+TARGET = "decision"
 
-    if timeframe not in timeframe_prefix:
-        raise ValueError(
-            f"Unsupported timeframe: {timeframe}"
-        )
+TIMEFRAMES = {
+    "H4": 20,
+    "H1": 20,
+    "M15": 20,
+    "M5": 20,
+}
 
-    prefix = timeframe_prefix[timeframe]
-
-    columns = [
-        col for col in df.columns
-        if col.startswith(prefix + "_")
-    ]
-
-    if not columns:
-        raise ValueError(
-            f"No features found for timeframe: {timeframe}"
-        )
-
-    return columns
+OHLC_COLUMNS = [
+    "open",
+    "high",
+    "low",
+    "close"
+]
 
 
-# ==================================================
+# --------------------------------------------------
+# GENERATE ALL FEATURE COLUMNS
+# --------------------------------------------------
+
+def generate_feature_columns():
+
+    feature_columns = []
+
+    for timeframe, candle_count in TIMEFRAMES.items():
+
+        for candle in range(1, candle_count + 1):
+
+            candle_name = f"{timeframe}_{candle:02d}"
+
+            for ohlc in OHLC_COLUMNS:
+
+                feature_columns.append(
+                    f"{candle_name}_{ohlc}"
+                )
+
+    return feature_columns
+
+
+# --------------------------------------------------
 # MAIN PREDICTION FUNCTION
-# ==================================================
+# --------------------------------------------------
 
-def prediction(candle_id, timeframe="1m"):
+def prediction(candle_id):
 
-    print("\n========== START PREDICTION ==========")
+    print("\n========== START PREDICTION ==========\n")
 
     script_dir = os.path.dirname(
         os.path.abspath(__file__)
     )
 
     # ------------------------------------------
-    # 1. FETCH CANDLE
+    # 1. FETCH CANDLE FROM DATABASE
     # ------------------------------------------
 
     db = None
@@ -86,41 +104,55 @@ def prediction(candle_id, timeframe="1m"):
     except Exception as e:
 
         print("Database error:", e)
+
         return {}
 
     finally:
 
         if db is not None and db.is_connected():
+
             db.close()
 
     if df.empty:
 
         print("Candle not found:", candle_id)
+
         return {}
 
     # ------------------------------------------
-    # 2. LOAD ALL RAW FEATURES DYNAMICALLY
+    # 2. GENERATE ALL EXPECTED FEATURES
     # ------------------------------------------
 
-    try:
+    raw_feature_columns = generate_feature_columns()
 
-        raw_feature_columns = generate_feature_columns(
-            timeframe,
-            df
+    print("Expected features:", len(raw_feature_columns))
+
+    if len(raw_feature_columns) != 320:
+
+        raise ValueError(
+            "Expected exactly 320 input features."
         )
 
-    except ValueError as e:
+    # ------------------------------------------
+    # 3. VALIDATE DATABASE COLUMNS
+    # ------------------------------------------
 
-        print("Feature error:", e)
-        return {}
+    missing_columns = [
+        col
+        for col in raw_feature_columns
+        if col not in df.columns
+    ]
 
-    print(
-        f"Timeframe: {timeframe}"
-    )
+    if missing_columns:
 
-    print(
-        f"Total raw features: {len(raw_feature_columns)}"
-    )
+        raise ValueError(
+            "Missing database columns:\n"
+            + "\n".join(missing_columns)
+        )
+
+    # ------------------------------------------
+    # 4. EXTRACT ALL TIMEFRAME FEATURES
+    # ------------------------------------------
 
     X_raw = df[raw_feature_columns].copy()
 
@@ -134,202 +166,211 @@ def prediction(candle_id, timeframe="1m"):
         np.nan
     )
 
-    feature_values = X_raw.iloc[0].to_dict()
-
-    results = {}
-
     # ------------------------------------------
-    # 3. PREDICT ONE MODEL
+    # 5. LOAD MODEL FILES
     # ------------------------------------------
 
-    def predict_model(target):
+    model_path = os.path.join(
+        script_dir,
+        f"model_{TARGET}.onnx"
+    )
 
-        model_path = os.path.join(
-            script_dir,
-            f"model_{target}.onnx"
-        )
+    classes_path = os.path.join(
+        script_dir,
+        f"classes_{TARGET}.json"
+    )
 
-        classes_path = os.path.join(
-            script_dir,
-            f"classes_{target}.json"
-        )
+    features_path = os.path.join(
+        script_dir,
+        f"features_{TARGET}.json"
+    )
 
-        features_path = os.path.join(
-            script_dir,
-            f"features_{target}.json"
-        )
-
-        if not all(
-            os.path.exists(path)
-            for path in [
-                model_path,
-                classes_path,
-                features_path
-            ]
-        ):
-
-            raise FileNotFoundError(
-                f"Missing model files for {target}"
-            )
-
-        with open(classes_path, "r") as f:
-            classes = json.load(f)
-
-        with open(features_path, "r") as f:
-            expected_features = json.load(f)
-
-        # Exact feature order used during training.
-
-        input_values = [
-            feature_values.get(col, np.nan)
-            for col in expected_features
-        ]
-
-        input_data = np.asarray(
-            [input_values],
-            dtype=np.float32
-        )
-
-        session = ort.InferenceSession(
-            model_path,
-            providers=["CPUExecutionProvider"]
-        )
-
-        input_name = session.get_inputs()[0].name
-
-        outputs = session.run(
-            None,
-            {
-                input_name: input_data
-            }
-        )
-
-        # RandomForestClassifier ONNX output:
-        # First output contains encoded class labels.
-
-        predicted_class_idx = int(
-            np.asarray(outputs[0]).reshape(-1)[0]
-        )
-
-        if not 0 <= predicted_class_idx < len(classes):
-
-            raise ValueError(
-                f"Invalid predicted class index for {target}: "
-                f"{predicted_class_idx}"
-            )
-
-        predicted_label = classes[predicted_class_idx]
-
-        print(
-            f"{target}: {predicted_label}"
-        )
-
-        return predicted_label
-
-    # ------------------------------------------
-    # 4. ADD ONE-HOT PREDICTION FEATURES
-    # ------------------------------------------
-
-    def add_prediction_features(target, predicted_label):
-
-        classes_path = os.path.join(
-            script_dir,
-            f"classes_{target}.json"
-        )
-
-        with open(classes_path, "r") as f:
-            classes = json.load(f)
-
-        for class_name in classes:
-
-            feature_values[
-                f"pred_{target}__{class_name}"
-            ] = np.float32(
-                predicted_label == class_name
-            )
-
-    # ------------------------------------------
-    # 5. STAGE 1: FIRST 9 MODELS
-    # ------------------------------------------
-
-    base_targets = [
-        "was",
-        "then",
-        "currently",
-        "future",
-        "volatility",
-        "bias",
-        "phase",
-        "momentum_direction",
-        "momentum_strength",
+    required_files = [
+        model_path,
+        classes_path,
+        features_path
     ]
 
-    for target in base_targets:
+    for path in required_files:
 
-        predicted_label = predict_model(target)
+        if not os.path.exists(path):
 
-        results[target] = predicted_label
+            raise FileNotFoundError(
+                f"Missing model file: {path}"
+            )
 
-        add_prediction_features(
-            target,
-            predicted_label
+    # ------------------------------------------
+    # 6. LOAD CLASS MAPPING
+    # ------------------------------------------
+
+    with open(classes_path, "r") as f:
+
+        classes = json.load(f)
+
+    # ------------------------------------------
+    # 7. LOAD EXACT FEATURE ORDER
+    # ------------------------------------------
+
+    with open(features_path, "r") as f:
+
+        expected_features = json.load(f)
+
+    if len(expected_features) != 320:
+
+        raise ValueError(
+            f"Expected 320 model features, "
+            f"found {len(expected_features)}."
+        )
+
+    if expected_features != raw_feature_columns:
+
+        raise ValueError(
+            "Feature order mismatch between "
+            "training and prediction."
         )
 
     # ------------------------------------------
-    # 6. STAGE 2: SETUP
+    # 8. PREPARE MODEL INPUT
     # ------------------------------------------
 
-    setup_prediction = predict_model("setup")
+    X_input = X_raw[expected_features].copy()
 
-    results["setup"] = setup_prediction
+    input_data = X_input.to_numpy(
+        dtype=np.float32
+    )
 
-    add_prediction_features(
-        "setup",
-        setup_prediction
+    if input_data.shape != (1, 320):
+
+        raise ValueError(
+            f"Invalid input shape: {input_data.shape}"
+        )
+
+    print("\n========== INPUT SUMMARY ==========\n")
+
+    print("Candle ID:", candle_id)
+
+    print("H4 features:", 80)
+
+    print("H1 features:", 80)
+
+    print("M15 features:", 80)
+
+    print("M5 features:", 80)
+
+    print("Total features:", input_data.shape[1])
+
+    print(
+        "Missing values:",
+        int(np.isnan(input_data).sum())
     )
 
     # ------------------------------------------
-    # 7. STAGE 3: MOMENTUM CANDLE
+    # 9. LOAD ONNX MODEL
     # ------------------------------------------
 
-    momentum_prediction = predict_model(
-        "momentum_candle"
+    session = ort.InferenceSession(
+        model_path,
+        providers=["CPUExecutionProvider"]
     )
 
-    results["momentum_candle"] = momentum_prediction
+    input_name = session.get_inputs()[0].name
 
-    add_prediction_features(
-        "momentum_candle",
-        momentum_prediction
+    # ------------------------------------------
+    # 10. RUN PREDICTION
+    # ------------------------------------------
+
+    outputs = session.run(
+        None,
+        {
+            input_name: input_data
+        }
     )
 
-    # ------------------------------------------
-    # 8. STAGE 4: DECISION
-    # ------------------------------------------
+    # First ONNX output contains encoded class labels.
 
-    decision_prediction = predict_model(
-        "decision"
+    predicted_class_idx = int(
+        np.asarray(outputs[0]).reshape(-1)[0]
     )
 
-    results["decision"] = decision_prediction
+    if not 0 <= predicted_class_idx < len(classes):
+
+        raise ValueError(
+            f"Invalid predicted class index: "
+            f"{predicted_class_idx}"
+        )
+
+    predicted_label = classes[predicted_class_idx]
 
     # ------------------------------------------
-    # 9. FINAL RESULTS
+    # 11. GET CLASS PROBABILITIES
     # ------------------------------------------
 
-    print("\n========== FINAL PREDICTIONS ==========")
+    probabilities = {}
 
-    print(results)
+    if len(outputs) > 1:
 
-    print("\n========== PREDICTION COMPLETE ==========")
+        probability_array = np.asarray(
+            outputs[1]
+        )
+
+        probability_array = probability_array.reshape(
+            1, -1
+        )[0]
+
+        for index, class_name in enumerate(classes):
+
+            if index < len(probability_array):
+
+                probabilities[class_name] = float(
+                    probability_array[index]
+                )
+
+    # ------------------------------------------
+    # 12. FINAL RESULTS
+    # ------------------------------------------
+
+    results = {
+
+        "id": candle_id,
+
+        "decision": predicted_label,
+
+        "class_index": predicted_class_idx,
+
+        "probabilities": probabilities,
+
+        "features": input_data.shape[1],
+
+        "timeframes": list(TIMEFRAMES.keys())
+    }
+
+    print("\n========== FINAL PREDICTION ==========\n")
+
+    print("Candle ID:", candle_id)
+
+    print("Decision:", predicted_label)
+
+    print("\nClass probabilities:")
+
+    for class_name, probability in probabilities.items():
+
+        print(
+            f"{class_name}: {probability:.2%}"
+        )
+
+    print("\n========== PREDICTION COMPLETE ==========\n")
 
     return results
 
 
-# ==================================================
+# --------------------------------------------------
 # EXAMPLE USAGE
-# ==================================================
+# --------------------------------------------------
 
-# prediction(12345, "15m")
-# prediction(12345, "5m")
-# prediction(12345, "1m")
+if __name__ == "__main__":
+
+    result = prediction(12345)
+
+    print("\nReturned result:")
+
+    print(result)

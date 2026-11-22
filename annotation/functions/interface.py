@@ -7,6 +7,7 @@ from django.utils.html import format_html
 from .data.migratecsvtosql import extra_columns
 from .fetchcandle import get_by_id_with_neighbors
 from .model.prediction_function import prediction
+from .model.trainer import train_models_and_export_onnx
 
 
 # ==================================================
@@ -116,6 +117,16 @@ def detect_timeframes(records):
 # ==================================================
 
 def interface(request, candleid):
+
+    # training_result = train_models_and_export_onnx()
+
+    # prediction_result = prediction(candleid)
+
+    # print("\n========== Prediction  training_result ==========")
+    # print(training_result)
+
+    # print("\n========== Prediction  RESULT ==========")
+    # print(prediction_result)
 
     # ------------------------------------------
     # 1. FETCH ALL DATA ONCE
@@ -345,11 +356,75 @@ def interface(request, candleid):
     # 11. RENDER TEMPLATE
     # ------------------------------------------
 
+    previous_decision = ""
+
+    if previous_row:
+
+        previous_decision = str(
+            previous_row.get("decision") or ""
+        ).strip().lower()
+
+    training_result = None
+
+    if previous_decision in ("buy", "sell"):
+
+        print(
+            "\n========== PREVIOUS DECISION:",
+            previous_decision,
+            "=========="
+        )
+
+        print("\n========== START MODEL TRAINING ==========")
+
+        training_result = train_models_and_export_onnx()
+
+        print("\n========== TRAINING RESULT ==========")
+        print(training_result)
+
+    else:
+
+        print(
+            "\n========== TRAINING SKIPPED =========="
+        )
+
+        print(
+            "Previous decision:",
+            previous_decision or "EMPTY"
+        )
+
+
+    prediction_result = prediction(candleid)
+
+    # Decision
+    predicted_decision = prediction_result.get("decision")
+
+    # Decision probabilities
+    decision_probabilities = prediction_result.get(
+        "probabilities", {}
+    )
+
+    # Highest probability class
+    highest_decision = max(
+        decision_probabilities,
+        key=decision_probabilities.get
+    ) if decision_probabilities else None
+
+    highest_decision_probability = (
+        decision_probabilities[highest_decision]
+        if highest_decision else None
+    )
+
+    print("Predicted Decision:", predicted_decision)
+    print("Highest Probability Decision:", highest_decision)
+    print("Highest Decision Probability:", highest_decision_probability)
+
+        
     return render(
         request,
         "annotation/interface.html",
         {
-
+            #Prediction 
+            "predicted_decision": predicted_decision,
             # FORM
             "form_parameters": form_parameters,
             "form_parameter_names": form_parameter_names,
