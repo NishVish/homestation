@@ -78,7 +78,6 @@
     "H4_20_open",
     "H4_20_high",
     "H4_20_low",
-    "H4_20_close",
     "H1_01_open",
     "H1_01_high",
     "H1_01_low",
@@ -158,7 +157,6 @@
     "H1_20_open",
     "H1_20_high",
     "H1_20_low",
-    "H1_20_close",
     "M15_01_open",
     "M15_01_high",
     "M15_01_low",
@@ -238,7 +236,6 @@
     "M15_20_open",
     "M15_20_high",
     "M15_20_low",
-    "M15_20_close",
     "M5_01_open",
     "M5_01_high",
     "M5_01_low",
@@ -318,5 +315,7 @@
     "M5_20_open",
     "M5_20_high",
     "M5_20_low",
-    "M5_20_close"
+    "time_remaining_H4_minutes",
+    "time_remaining_H1_minutes",
+    "time_remaining_M15_minutes"
 ]

@@ -38,13 +38,6 @@ TABLE_NAME = "labeled_flatdata"
 
 TARGET = "decision"
 
-TIMEFRAMES = {
-    "H4": 20,
-    "H1": 20,
-    "M15": 20,
-    "M5": 20,
-}
-
 OHLC_COLUMNS = [
     "open",
     "high",
@@ -52,6 +45,25 @@ OHLC_COLUMNS = [
     "close"
 ]
 
+TIMEFRAMES = {
+    "H4": 20,
+    "H1": 20,
+    "M15": 20,
+    "M5": 20,
+}
+
+TIME_REMAINING_COLUMNS = [
+    "time_remaining_H4_minutes",
+    "time_remaining_H1_minutes",
+    "time_remaining_M15_minutes",
+]
+
+EXCLUDED_FEATURES = [
+    "H4_20_close",
+    "H1_20_close",
+    "M15_20_close",
+    "M5_20_close",
+]
 
 # --------------------------------------------------
 # GENERATE FEATURE COLUMNS
@@ -69,9 +81,12 @@ def generate_feature_columns():
 
             for ohlc in OHLC_COLUMNS:
 
-                feature_columns.append(
-                    f"{candle_name}_{ohlc}"
-                )
+                column = f"{candle_name}_{ohlc}"
+
+                if column not in EXCLUDED_FEATURES:
+                    feature_columns.append(column)
+
+    feature_columns.extend(TIME_REMAINING_COLUMNS)
 
     return feature_columns
 

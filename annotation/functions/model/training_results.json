@@ -1,8 +1,8 @@
 {
     "decision": {
-        "accuracy": 0.6545454545454545,
-        "training_rows": 55,
-        "features": 320,
+        "accuracy": 0.6557377049180327,
+        "training_rows": 61,
+        "features": 319,
         "classes": [
             "buy",
             "none",

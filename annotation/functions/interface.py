@@ -226,28 +226,28 @@ def interface(request, candleid):
     # 6. DUMMY PREDICTIONS FOR ALL TIMEFRAMES
     # ------------------------------------------
 
-    prediction_values = {}
+    # prediction_values = {}
 
-    for timeframe in timeframe_data.keys():
+    # for timeframe in timeframe_data.keys():
 
-        try:
+    #     try:
 
-            print(
-                f"\n========== {timeframe} DUMMY PREDICTION =========="
-            )
+    #         print(
+    #             f"\n========== {timeframe} DUMMY PREDICTION =========="
+    #         )
 
-            prediction_values[timeframe] = dummy_prediction(
-                candleid,
-                timeframe
-            )
+    #         prediction_values[timeframe] = dummy_prediction(
+    #             candleid,
+    #             timeframe
+    #         )
 
-        except Exception as e:
+    #     except Exception as e:
 
-            print(
-                f"Dummy prediction error for {timeframe}: {e}"
-            )
+    #         print(
+    #             f"Dummy prediction error for {timeframe}: {e}"
+    #         )
 
-            prediction_values[timeframe] = {}
+    #         prediction_values[timeframe] = {}
 
             
     # ------------------------------------------
@@ -344,11 +344,11 @@ def interface(request, candleid):
 
     print("\n========== ALL TIMEFRAME PREDICTIONS ==========")
 
-    print(json.dumps(
-        prediction_values,
-        indent=4,
-        default=str
-    ))
+    # print(json.dumps(
+    #     prediction_values,
+    #     indent=4,
+    #     default=str
+    # ))
     # print(timeframe_data)
     h4_time = timeframe_data["h4"]["current"][-1]["time"]
     print(h4_time)
@@ -376,7 +376,7 @@ def interface(request, candleid):
 
         print("\n========== START MODEL TRAINING ==========")
 
-        training_result = train_models_and_export_onnx()
+        # training_result = train_models_and_export_onnx()
 
         print("\n========== TRAINING RESULT ==========")
         print(training_result)
